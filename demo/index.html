@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aura Sound - Premium Audio Store (Demo)</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Floating Live Telemetry HUD -->
+  <div class="tracker-hud" id="tracker-hud">
+    <div class="hud-header">
+      <span><span class="status-dot"></span>CausalFunnel Tracker</span>
+      <span style="font-size:10px; opacity:0.8;">LIVE</span>
+    </div>
+    <div class="hud-row">
+      <span>Session ID:</span>
+      <span class="hud-val" id="hud-session-id">Initializing...</span>
+    </div>
+    <div class="hud-row">
+      <span>Events Tracked:</span>
+      <span class="hud-val" id="hud-count">0</span>
+    </div>
+    <div class="hud-row">
+      <span>Latest Event:</span>
+      <span class="hud-val" id="hud-last-event">Waiting...</span>
+    </div>
+  </div>
+
+  <!-- Navigation Bar -->
+  <header class="navbar">
+    <a href="index.html" class="brand">
+      <span>⚡</span> Aura Audio
+    </a>
+    <ul class="nav-links">
+      <li><a href="index.html" class="active" id="nav-home">Home</a></li>
+      <li><a href="product.html" id="nav-headphones">Headphones</a></li>
+      <li><a href="product.html" id="nav-earbuds">Earbuds</a></li>
+      <li><a href="index.html#support" id="nav-support">Support</a></li>
+    </ul>
+    <div class="nav-actions">
+      <button class="btn-icon" id="btn-search" title="Search Catalog">🔍 Search</button>
+      <button class="btn-icon" id="btn-cart" title="Shopping Cart">🛒 Cart (<span id="cart-counter">0</span>)</button>
+    </div>
+  </header>
+
+  <!-- Hero Banner -->
+  <main>
+    <section class="hero">
+      <div class="badge">Next-Generation Spatial Audio</div>
+      <h1>Sound Engineered for Perfection.</h1>
+      <p>Experience studio-grade active noise cancellation and ultra-wide frequency drivers tuned by acoustic masters.</p>
+      <div class="hero-actions">
+        <a href="product.html" class="btn-primary" id="hero-btn-explore">Explore Flagship ANC &rarr;</a>
+        <button class="btn-secondary" id="hero-btn-demo">Listen to Sample</button>
+      </div>
+    </section>
+
+    <!-- Product Showcase -->
+    <section class="products-section">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">Featured Acoustics</h2>
+          <p class="section-desc">Click any product or button to generate real tracked user interactions.</p>
+        </div>
+        <div>
+          <button class="btn-secondary" id="btn-filter-all" style="padding:6px 16px; font-size:13px;">View All (8)</button>
+        </div>
+      </div>
+
+      <div class="product-grid">
+        <!-- Product 1 -->
+        <article class="product-card" id="card-aura-pro">
+          <div class="product-img-box">
+            <span class="product-img-placeholder">🎧</span>
+          </div>
+          <div class="product-info">
+            <span class="product-category">Over-Ear ANC</span>
+            <h3 class="product-name">Aura Pro Studio</h3>
+            <p class="product-price">$349.00</p>
+          </div>
+          <div class="card-actions">
+            <button class="btn-card-add" id="btn-add-aura-pro" onclick="incrementCart('Aura Pro Studio')">Add to Cart</button>
+            <a href="product.html" class="btn-card-view" id="link-view-aura-pro">Details</a>
+          </div>
+        </article>
+
+        <!-- Product 2 -->
+        <article class="product-card" id="card-aura-air">
+          <div class="product-img-box">
+            <span class="product-img-placeholder">🎵</span>
+          </div>
+          <div class="product-info">
+            <span class="product-category">Wireless Earbuds</span>
+            <h3 class="product-name">Aura Air Pods</h3>
+            <p class="product-price">$199.00</p>
+          </div>
+          <div class="card-actions">
+            <button class="btn-card-add" id="btn-add-aura-air" onclick="incrementCart('Aura Air Pods')">Add to Cart</button>
+            <a href="product.html" class="btn-card-view" id="link-view-aura-air">Details</a>
+          </div>
+        </article>
+
+        <!-- Product 3 -->
+        <article class="product-card" id="card-aura-stage">
+          <div class="product-img-box">
+            <span class="product-img-placeholder">📻</span>
+          </div>
+          <div class="product-info">
+            <span class="product-category">Home Speaker</span>
+            <h3 class="product-name">Aura Stage 360</h3>
+            <p class="product-price">$499.00</p>
+          </div>
+          <div class="card-actions">
+            <button class="btn-card-add" id="btn-add-aura-stage" onclick="incrementCart('Aura Stage 360')">Add to Cart</button>
+            <a href="product.html" class="btn-card-view" id="link-view-aura-stage">Details</a>
+          </div>
+        </article>
+
+        <!-- Product 4 -->
+        <article class="product-card" id="card-aura-bass">
+          <div class="product-img-box">
+            <span class="product-img-placeholder">🔊</span>
+          </div>
+          <div class="product-info">
+            <span class="product-category">Subwoofer</span>
+            <h3 class="product-name">Aura Bass Sub</h3>
+            <p class="product-price">$399.00</p>
+          </div>
+          <div class="card-actions">
+            <button class="btn-card-add" id="btn-add-aura-bass" onclick="incrementCart('Aura Bass Sub')">Add to Cart</button>
+            <a href="product.html" class="btn-card-view" id="link-view-aura-bass">Details</a>
+          </div>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <!-- Interactive Cart Script -->
+  <script>
+    let cartCount = 0;
+    function incrementCart(itemName) {
+      cartCount++;
+      document.getElementById('cart-counter').innerText = cartCount;
+    }
+
+    // Telemetry HUD synchronization
+    let eventTally = 0;
+    window.addEventListener('cf_event_tracked', function(e) {
+      eventTally++;
+      const detail = e.detail;
+      document.getElementById('hud-count').innerText = eventTally;
+      document.getElementById('hud-session-id').innerText = detail.sessionId ? detail.sessionId.substring(0, 16) + '...' : 'Active';
+
+      if (detail.eventType === 'page_view') {
+        document.getElementById('hud-last-event').innerText = 'page_view (' + detail.pageUrl + ')';
+      } else if (detail.eventType === 'click') {
+        document.getElementById('hud-last-event').innerText = 'click (' + detail.x + ', ' + detail.y + ')';
+      }
+    });
+  </script>
+
+  <!-- CausalFunnel Tracking SDK Integration -->
+  <script 
+    src="http://localhost:5000/tracker.js" 
+    data-api-endpoint="http://localhost:5000/api/events"
+    async>
+  </script>
+</body>
+</html>

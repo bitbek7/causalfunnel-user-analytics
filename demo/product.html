@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aura Pro Studio - Flagship ANC Headphones (Demo)</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .product-detail-container {
+      max-width: 1100px;
+      margin: 40px auto;
+      padding: 0 20px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 50px;
+      align-items: center;
+    }
+    .detail-img-box {
+      background: #111827;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      height: 420px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 110px;
+    }
+    .detail-specs {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .spec-item {
+      display: flex;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 8px;
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+    .spec-val {
+      color: #fff;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Floating Live Telemetry HUD -->
+  <div class="tracker-hud" id="tracker-hud">
+    <div class="hud-header">
+      <span><span class="status-dot"></span>CausalFunnel Tracker</span>
+      <span style="font-size:10px; opacity:0.8;">LIVE</span>
+    </div>
+    <div class="hud-row">
+      <span>Session ID:</span>
+      <span class="hud-val" id="hud-session-id">Loading...</span>
+    </div>
+    <div class="hud-row">
+      <span>Events Tracked:</span>
+      <span class="hud-val" id="hud-count">0</span>
+    </div>
+    <div class="hud-row">
+      <span>Latest Event:</span>
+      <span class="hud-val" id="hud-last-event">Waiting...</span>
+    </div>
+  </div>
+
+  <!-- Navigation Bar -->
+  <header class="navbar">
+    <a href="index.html" class="brand">
+      <span>⚡</span> Aura Audio
+    </a>
+    <ul class="nav-links">
+      <li><a href="index.html" id="nav-home">Home</a></li>
+      <li><a href="product.html" class="active" id="nav-headphones">Headphones</a></li>
+      <li><a href="index.html#support" id="nav-support">Support</a></li>
+    </ul>
+    <div class="nav-actions">
+      <a href="index.html" class="btn-secondary" id="btn-back">&larr; Back to Catalog</a>
+      <button class="btn-icon" id="btn-cart">🛒 Cart (<span id="cart-counter">0</span>)</button>
+    </div>
+  </header>
+
+  <main class="product-detail-container">
+    <div class="detail-img-box" id="gallery-main-image">
+      🎧
+    </div>
+
+    <div class="detail-specs">
+      <span class="product-category">Flagship Wireless Series</span>
+      <h1 style="font-size: 34px; font-weight: 800;">Aura Pro Studio Wireless</h1>
+      <p style="color: var(--text-muted); font-size: 16px;">Custom titanium dynamic drivers with lossless spatial audio, real-time noise cancellation, and 45-hour battery reserve.</p>
+
+      <div style="font-size: 28px; font-weight: 800; color: #fff; margin: 10px 0;">$349.00</div>
+
+      <div class="spec-item">
+        <span>Acoustic Driver</span>
+        <span class="spec-val">40mm Custom Bio-Cellulose</span>
+      </div>
+      <div class="spec-item">
+        <span>Active Noise Cancellation</span>
+        <span class="spec-val">Adaptive Hybrid ANC (45dB)</span>
+      </div>
+      <div class="spec-item">
+        <span>Battery Life</span>
+        <span class="spec-val">45 Hours (Fast Charge: 15m = 6h)</span>
+      </div>
+
+      <div style="display: flex; gap: 14px; margin-top: 20px;">
+        <button class="btn-primary" id="btn-add-cart-detail" onclick="incrementCart('Aura Pro')" style="flex: 2; justify-content: center;">Add to Cart - $349.00</button>
+        <button class="btn-secondary" id="btn-wishlist" style="flex: 1;">♡ Wishlist</button>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    let cartCount = 0;
+    function incrementCart(name) {
+      cartCount++;
+      document.getElementById('cart-counter').innerText = cartCount;
+    }
+
+    let eventTally = 0;
+    window.addEventListener('cf_event_tracked', function(e) {
+      eventTally++;
+      const detail = e.detail;
+      document.getElementById('hud-count').innerText = eventTally;
+      document.getElementById('hud-session-id').innerText = detail.sessionId ? detail.sessionId.substring(0, 16) + '...' : 'Active';
+
+      if (detail.eventType === 'page_view') {
+        document.getElementById('hud-last-event').innerText = 'page_view (' + detail.pageUrl + ')';
+      } else if (detail.eventType === 'click') {
+        document.getElementById('hud-last-event').innerText = 'click (' + detail.x + ', ' + detail.y + ')';
+      }
+    });
+  </script>
+
+  <!-- CausalFunnel Tracking SDK Integration -->
+  <script 
+    src="http://localhost:5000/tracker.js" 
+    data-api-endpoint="http://localhost:5000/api/events"
+    async>
+  </script>
+</body>
+</html>

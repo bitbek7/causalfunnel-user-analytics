@@ -5,9 +5,7 @@ export default function Navbar({
   setActiveTab,
   isLive,
   isRefreshing,
-  onRefresh,
-  onSeedDemo,
-  isSeeding
+  onRefresh
 }) {
   return (
     <div className="nav-wrapper">
@@ -59,9 +57,9 @@ export default function Navbar({
           </button>
         </nav>
 
-        {/* Right: API Status & Action Buttons */}
+        {/* Right: API Connection Status & Refresh Button */}
         <div className="nav-actions">
-          {/* API Connection Status reflecting real backend health */}
+          {/* API Connection Status reflecting actual backend health */}
           <div
             id="api-status-badge"
             className={`api-status-pill ${isLive ? 'api-status-online' : 'api-status-offline'}`}
@@ -71,18 +69,7 @@ export default function Navbar({
             <span>{isLive ? 'API CONNECTED' : 'OFFLINE'}</span>
           </div>
 
-          {/* Seed Demo Data Button */}
-          <button
-            id="btn-seed-data"
-            className="btn-cf-secondary"
-            onClick={onSeedDemo}
-            disabled={isSeeding}
-            title="Seed rich test sessions into MongoDB"
-          >
-            <span>{isSeeding ? '⏳ Seeding...' : '🌱 Seed Sample Data'}</span>
-          </button>
-
-          {/* Refresh Button matching "Free Trial" button in screenshot */}
+          {/* Refresh Button */}
           <button
             id="btn-refresh-data"
             className="btn-cf-primary"

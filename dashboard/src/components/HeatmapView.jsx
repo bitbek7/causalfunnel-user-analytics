@@ -8,11 +8,11 @@ export default function HeatmapView() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Visual modes: Default is 'points' (Point-Marker visualization)
+  // Visual modes: Default is 'points' (Simple dot-based click visualization)
   const [visualMode, setVisualMode] = useState('points'); // 'points' | 'density'
   const [showGrid, setShowGrid] = useState(true);
   const [dotRadius, setDotRadius] = useState(24);
-  const [hoveredCluster, setHoveredCluster] = useState(null);
+  const [hoveredPoint, setHoveredPoint] = useState(null);
 
   const canvasRef = useRef(null);
 
@@ -64,8 +64,7 @@ export default function HeatmapView() {
     return () => { isMounted = false; };
   }, [selectedPage]);
 
-  // Compute clusters: Group clicks sharing exact or nearby coordinates
-  // Solves the issue where multiple clicks on the exact same button appeared as 1 dot!
+  // Group overlapping clicks sharing identical coordinates (e.g. repeated clicks on the same button)
   const clusters = useMemo(() => {
     if (!heatmapData || !heatmapData.clicks || heatmapData.clicks.length === 0) {
       return [];
@@ -75,10 +74,8 @@ export default function HeatmapView() {
     const grouped = [];
 
     clickList.forEach((c) => {
-      // Find existing cluster within 8px
-      const existing = grouped.find(
-        (g) => Math.hypot(g.x - c.x, g.y - c.y) <= 8
-      );
+      // Direct coordinate match (within 6px radius)
+      const existing = grouped.find((g) => Math.hypot(g.x - c.x, g.y - c.y) <= 6);
 
       if (existing) {
         existing.count += 1;
@@ -96,6 +93,16 @@ export default function HeatmapView() {
     });
 
     return grouped;
+  }, [heatmapData]);
+
+  // Compute dynamic canvas dimensions to ensure every real click coordinate fits without clipping
+  const canvasDimensions = useMemo(() => {
+    const maxX = heatmapData?.bounds?.maxX || 1000;
+    const maxY = heatmapData?.bounds?.maxY || 600;
+    return {
+      width: Math.max(1050, maxX + 60),
+      height: Math.max(620, maxY + 60)
+    };
   }, [heatmapData]);
 
   // Draw Heatmap / Point Markers onto Canvas
@@ -134,7 +141,7 @@ export default function HeatmapView() {
         ctx.stroke();
       }
 
-      // Major coordinate grid markings
+      // Major coordinate grid lines
       ctx.strokeStyle = '#e2e8f0';
       ctx.lineWidth = 1.5;
       for (let x = 200; x <= width; x += 200) {
@@ -171,54 +178,51 @@ export default function HeatmapView() {
       return;
     }
 
-    // 2. Primary Visualization: Point Markers Mode
+    // 2. Primary Visualization: Simple Dot-Based Click Visualization
     if (visualMode === 'points') {
       clusters.forEach((cl) => {
-        const x = Math.min(Math.max(cl.x, 10), width - 10);
-        const y = Math.min(Math.max(cl.y, 10), height - 10);
+        // Render dots at exact real coordinates
+        const x = cl.x;
+        const y = cl.y;
+        const markerRadius = cl.count > 1 ? 8 : 6;
 
-        // Marker size scaled slightly by cluster frequency
-        const markerRadius = cl.count > 1 ? 9 : 7;
-
-        // Outer glow halo
-        ctx.fillStyle = cl.count > 1 ? 'rgba(239, 68, 68, 0.22)' : 'rgba(37, 99, 235, 0.2)';
+        // Outer glow
+        ctx.fillStyle = cl.count > 1 ? 'rgba(239, 68, 68, 0.2)' : 'rgba(37, 99, 235, 0.2)';
         ctx.beginPath();
-        ctx.arc(x, y, markerRadius + 10, 0, Math.PI * 2);
+        ctx.arc(x, y, markerRadius + 8, 0, Math.PI * 2);
         ctx.fill();
 
         // Secondary ring
-        ctx.fillStyle = cl.count > 1 ? 'rgba(239, 68, 68, 0.45)' : 'rgba(37, 99, 235, 0.45)';
+        ctx.fillStyle = cl.count > 1 ? 'rgba(239, 68, 68, 0.4)' : 'rgba(37, 99, 235, 0.4)';
         ctx.beginPath();
-        ctx.arc(x, y, markerRadius + 4, 0, Math.PI * 2);
+        ctx.arc(x, y, markerRadius + 3, 0, Math.PI * 2);
         ctx.fill();
 
-        // Solid Core Marker
+        // Solid Dot Marker
         ctx.fillStyle = cl.count > 1 ? '#ef4444' : '#2563eb';
         ctx.beginPath();
         ctx.arc(x, y, markerRadius, 0, Math.PI * 2);
         ctx.fill();
 
-        // Crisp White Bullseye Center
+        // Center White Pin
         ctx.fillStyle = '#ffffff';
         ctx.beginPath();
-        ctx.arc(x, y, 2.5, 0, Math.PI * 2);
+        ctx.arc(x, y, 2, 0, Math.PI * 2);
         ctx.fill();
 
-        // Cluster count badge if multiple clicks landed on this location
+        // Frequency Badge if multiple clicks landed on the exact same location
         if (cl.count > 1) {
-          ctx.fillStyle = '#1e293b';
+          ctx.fillStyle = '#ef4444';
           ctx.font = 'bold 11px Inter, sans-serif';
           const label = `${cl.count}x`;
           const textWidth = ctx.measureText(label).width;
 
-          // Badge pill background
-          ctx.fillStyle = '#ef4444';
           ctx.beginPath();
-          ctx.roundRect(x - textWidth / 2 - 5, y - 24, textWidth + 10, 16, 8);
+          ctx.roundRect(x - textWidth / 2 - 4, y - 22, textWidth + 8, 15, 6);
           ctx.fill();
 
           ctx.fillStyle = '#ffffff';
-          ctx.fillText(label, x - textWidth / 2, y - 12);
+          ctx.fillText(label, x - textWidth / 2, y - 11);
         }
       });
     }
@@ -226,10 +230,7 @@ export default function HeatmapView() {
     // 3. Optional Density Heatmap Mode
     if (visualMode === 'density') {
       heatmapData.clicks.forEach((c) => {
-        const x = Math.min(Math.max(c.x, 5), width - 5);
-        const y = Math.min(Math.max(c.y, 5), height - 5);
-
-        const radGrad = ctx.createRadialGradient(x, y, 0, x, y, dotRadius);
+        const radGrad = ctx.createRadialGradient(c.x, c.y, 0, c.x, c.y, dotRadius);
         radGrad.addColorStop(0, 'rgba(239, 68, 68, 0.85)');    // Red core
         radGrad.addColorStop(0.3, 'rgba(245, 158, 11, 0.65)'); // Amber mid
         radGrad.addColorStop(0.7, 'rgba(59, 130, 246, 0.25)'); // Blue outer
@@ -237,33 +238,29 @@ export default function HeatmapView() {
 
         ctx.fillStyle = radGrad;
         ctx.beginPath();
-        ctx.arc(x, y, dotRadius, 0, Math.PI * 2);
+        ctx.arc(c.x, c.y, dotRadius, 0, Math.PI * 2);
         ctx.fill();
       });
     }
 
-    // 4. Highlight hovered point or cluster
-    if (hoveredCluster) {
-      const hx = Math.min(Math.max(hoveredCluster.x, 10), width - 10);
-      const hy = Math.min(Math.max(hoveredCluster.y, 10), height - 10);
-
+    // 4. Highlight hovered point
+    if (hoveredPoint) {
       ctx.strokeStyle = '#0284c7';
       ctx.lineWidth = 2.5;
       ctx.beginPath();
-      ctx.arc(hx, hy, 22, 0, Math.PI * 2);
+      ctx.arc(hoveredPoint.x, hoveredPoint.y, 20, 0, Math.PI * 2);
       ctx.stroke();
 
-      // Crosshairs
-      ctx.strokeStyle = 'rgba(2, 132, 199, 0.6)';
+      ctx.strokeStyle = 'rgba(2, 132, 199, 0.5)';
       ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.moveTo(hx - 28, hy);
-      ctx.lineTo(hx + 28, hy);
-      ctx.moveTo(hx, hy - 28);
-      ctx.lineTo(hx, hy + 28);
+      ctx.moveTo(hoveredPoint.x - 26, hoveredPoint.y);
+      ctx.lineTo(hoveredPoint.x + 26, hoveredPoint.y);
+      ctx.moveTo(hoveredPoint.x, hoveredPoint.y - 26);
+      ctx.lineTo(hoveredPoint.x, hoveredPoint.y + 26);
       ctx.stroke();
     }
-  }, [heatmapData, clusters, visualMode, showGrid, dotRadius, hoveredCluster]);
+  }, [heatmapData, clusters, visualMode, showGrid, dotRadius, hoveredPoint]);
 
   // Handle canvas mouse move for interactive inspection
   const handleCanvasMouseMove = (e) => {
@@ -275,7 +272,7 @@ export default function HeatmapView() {
     const mouseY = e.clientY - rect.top;
 
     let closest = null;
-    let minDist = 28;
+    let minDist = 26;
 
     clusters.forEach((cl) => {
       const dist = Math.hypot(cl.x - mouseX, cl.y - mouseY);
@@ -285,11 +282,11 @@ export default function HeatmapView() {
       }
     });
 
-    setHoveredCluster(closest);
+    setHoveredPoint(closest);
   };
 
   const handleCanvasMouseLeave = () => {
-    setHoveredCluster(null);
+    setHoveredPoint(null);
   };
 
   return (
@@ -403,12 +400,12 @@ export default function HeatmapView() {
               Interaction Canvas: <span style={{ color: 'var(--cf-blue)', fontFamily: 'var(--font-mono)' }}>{selectedPage}</span>
             </h3>
             <p style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>
-              Hover over any point marker to inspect exact document coordinates, target DOM tag, and frequency.
+              Dot-based click positions retrieved from MongoDB. Hover over any dot to inspect exact coordinates.
             </p>
           </div>
 
           {/* Live Hover Tooltip */}
-          {hoveredCluster && (
+          {hoveredPoint && (
             <div
               style={{
                 background: '#ffffff',
@@ -425,14 +422,14 @@ export default function HeatmapView() {
               }}
             >
               <span style={{ color: '#b45309', fontWeight: 700 }}>
-                🎯 (x: {hoveredCluster.x}, y: {hoveredCluster.y})
+                🎯 (x: {hoveredPoint.x}, y: {hoveredPoint.y})
               </span>
               <span style={{ color: 'var(--cf-blue)', fontWeight: 700 }}>
-                {hoveredCluster.count} {hoveredCluster.count === 1 ? 'click' : 'clicks here'}
+                {hoveredPoint.count} {hoveredPoint.count === 1 ? 'click' : 'clicks here'}
               </span>
-              {hoveredCluster.elementTag && (
+              {hoveredPoint.elementTag && (
                 <span style={{ color: 'var(--text-muted)' }}>
-                  &lt;{hoveredCluster.elementTag}&gt; {hoveredCluster.elementText ? `"${hoveredCluster.elementText}"` : ''}
+                  &lt;{hoveredPoint.elementTag}&gt; {hoveredPoint.elementText ? `"${hoveredPoint.elementText}"` : ''}
                 </span>
               )}
             </div>
@@ -445,8 +442,8 @@ export default function HeatmapView() {
             <canvas
               id="heatmap-canvas"
               ref={canvasRef}
-              width={1050}
-              height={620}
+              width={canvasDimensions.width}
+              height={canvasDimensions.height}
               className="canvas-element"
               onMouseMove={handleCanvasMouseMove}
               onMouseLeave={handleCanvasMouseLeave}
@@ -485,10 +482,10 @@ export default function HeatmapView() {
                 {heatmapData.clicks.map((click, i) => (
                   <tr
                     key={click._id || i}
-                    onMouseEnter={() => setHoveredCluster({ x: click.x, y: click.y, count: 1, elementTag: click.elementTag, elementText: click.elementText })}
-                    onMouseLeave={() => setHoveredCluster(null)}
+                    onMouseEnter={() => setHoveredPoint({ x: click.x, y: click.y, count: 1, elementTag: click.elementTag, elementText: click.elementText })}
+                    onMouseLeave={() => setHoveredPoint(null)}
                     style={{
-                      background: hoveredCluster && hoveredCluster.x === click.x && hoveredCluster.y === click.y
+                      background: hoveredPoint && hoveredPoint.x === click.x && hoveredPoint.y === click.y
                         ? '#eff6ff'
                         : 'transparent'
                     }}

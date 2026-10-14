@@ -4,7 +4,7 @@ import OverviewMetrics from './components/OverviewMetrics';
 import SessionsView from './components/SessionsView';
 import UserJourney from './components/UserJourney';
 import HeatmapView from './components/HeatmapView';
-import { fetchSessions, fetchSessionEvents, fetchHealth, seedDemoData } from './services/api';
+import { fetchSessions, fetchSessionEvents, fetchHealth } from './services/api';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('sessions'); // 'sessions' | 'heatmap'
@@ -18,14 +18,6 @@ export default function App() {
 
   const [isLive, setIsLive] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isSeeding, setIsSeeding] = useState(false);
-  const [toastMessage, setToastMessage] = useState(null);
-
-  // Show transient toast
-  const showToast = (msg) => {
-    setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3500);
-  };
 
   // Load real telemetry sessions & backend health
   const loadInitialData = useCallback(async (silent = false) => {
@@ -94,47 +86,8 @@ export default function App() {
     return () => { isMounted = false; };
   }, [selectedSessionId]);
 
-  // Seed sample data action
-  const handleSeedDemo = async () => {
-    setIsSeeding(true);
-    try {
-      const res = await seedDemoData();
-      showToast(`🌱 Seeded ${res.eventsCount} demo events across ${res.sessionsCount} sessions!`);
-      await loadInitialData(false);
-    } catch (err) {
-      showToast(`❌ Seeding failed: ${err.message}`);
-    } finally {
-      setIsSeeding(false);
-    }
-  };
-
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      {/* Toast Notification */}
-      {toastMessage && (
-        <div
-          style={{
-            position: 'fixed',
-            top: '80px',
-            right: '28px',
-            zIndex: 9999,
-            background: '#ffffff',
-            border: '1px solid #bfdbfe',
-            color: 'var(--text-primary)',
-            padding: '12px 22px',
-            borderRadius: '9999px',
-            boxShadow: '0 10px 25px rgba(37, 99, 235, 0.15)',
-            fontSize: '13.5px',
-            fontWeight: 600,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
-          }}
-        >
-          {toastMessage}
-        </div>
-      )}
-
       {/* Floating Pill Navigation Bar */}
       <Navbar
         activeTab={activeTab}
@@ -142,8 +95,6 @@ export default function App() {
         isLive={isLive}
         isRefreshing={isRefreshing}
         onRefresh={() => loadInitialData(false)}
-        onSeedDemo={handleSeedDemo}
-        isSeeding={isSeeding}
       />
 
       {/* Main Page Content */}

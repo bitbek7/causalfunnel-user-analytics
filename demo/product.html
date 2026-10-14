@@ -50,7 +50,7 @@
   <div class="tracker-hud" id="tracker-hud">
     <div class="hud-header">
       <span><span class="status-dot"></span>CausalFunnel Tracker</span>
-      <span style="font-size:10px; opacity:0.8;">LIVE</span>
+      <span style="font-size:10px; opacity:0.8;">CONNECTED</span>
     </div>
     <div class="hud-row">
       <span>Session ID:</span>
@@ -82,7 +82,12 @@
     </div>
   </header>
 
-  <main class="product-detail-container">
+  <main
+    class="product-detail-container"
+    data-product-id="prod_aura_pro"
+    data-product-name="Aura Pro Studio"
+    data-product-category="Over-Ear ANC"
+  >
     <div class="detail-img-box" id="gallery-main-image">
       🎧
     </div>
@@ -108,18 +113,87 @@
       </div>
 
       <div style="display: flex; gap: 14px; margin-top: 20px;">
-        <button class="btn-primary" id="btn-add-cart-detail" onclick="incrementCart('Aura Pro')" style="flex: 2; justify-content: center;">Add to Cart - $349.00</button>
-        <button class="btn-secondary" id="btn-wishlist" style="flex: 1;">♡ Wishlist</button>
+        <button
+          class="btn-primary"
+          id="btn-add-cart-detail"
+          onclick="handleAddToCart('prod_aura_pro', 'Aura Pro Studio', 'Over-Ear ANC')"
+          style="flex: 2; justify-content: center;"
+        >
+          Add to Cart - $349.00
+        </button>
+        <button
+          class="btn-secondary"
+          id="btn-wishlist"
+          onclick="toggleFavorite('prod_aura_pro', 'Aura Pro Studio', 'Over-Ear ANC')"
+          style="flex: 1;"
+        >
+          ♡ Wishlist
+        </button>
       </div>
     </div>
   </main>
 
   <script>
     let cartCount = 0;
-    function incrementCart(name) {
+    function handleAddToCart(productId, productName, productCategory) {
       cartCount++;
       document.getElementById('cart-counter').innerText = cartCount;
+
+      if (window.CausalTracker && typeof window.CausalTracker.trackAddToCart === 'function') {
+        window.CausalTracker.trackAddToCart({
+          productId,
+          productName,
+          productCategory
+        });
+      }
     }
+
+    function getStoredFavorites() {
+      try {
+        const stored = localStorage.getItem('cf_user_favorites');
+        return stored ? JSON.parse(stored) : {};
+      } catch (e) {
+        return {};
+      }
+    }
+
+    function toggleFavorite(productId, productName, productCategory) {
+      const favs = getStoredFavorites();
+      const isFav = !!favs[productId];
+      const btn = document.getElementById('btn-wishlist');
+
+      if (isFav) {
+        delete favs[productId];
+        localStorage.setItem('cf_user_favorites', JSON.stringify(favs));
+        btn.innerText = '♡ Wishlist';
+        btn.style.color = '';
+        btn.style.borderColor = '';
+
+        if (window.CausalTracker && typeof window.CausalTracker.trackUnfavorite === 'function') {
+          window.CausalTracker.trackUnfavorite({ productId, productName, productCategory });
+        }
+      } else {
+        favs[productId] = { productName, productCategory };
+        localStorage.setItem('cf_user_favorites', JSON.stringify(favs));
+        btn.innerText = '❤️ In Wishlist';
+        btn.style.color = '#f43f5e';
+        btn.style.borderColor = '#f43f5e';
+
+        if (window.CausalTracker && typeof window.CausalTracker.trackFavorite === 'function') {
+          window.CausalTracker.trackFavorite({ productId, productName, productCategory });
+        }
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      const favs = getStoredFavorites();
+      if (favs['prod_aura_pro']) {
+        const btn = document.getElementById('btn-wishlist');
+        btn.innerText = '❤️ In Wishlist';
+        btn.style.color = '#f43f5e';
+        btn.style.borderColor = '#f43f5e';
+      }
+    });
 
     let eventTally = 0;
     window.addEventListener('cf_event_tracked', function(e) {
@@ -132,6 +206,12 @@
         document.getElementById('hud-last-event').innerText = 'page_view (' + detail.pageUrl + ')';
       } else if (detail.eventType === 'click') {
         document.getElementById('hud-last-event').innerText = 'click (' + detail.x + ', ' + detail.y + ')';
+      } else if (detail.eventType === 'add_to_cart') {
+        document.getElementById('hud-last-event').innerText = 'add_to_cart (' + detail.productName + ')';
+      } else if (detail.eventType === 'product_favorite') {
+        document.getElementById('hud-last-event').innerText = 'favorite (' + detail.productName + ')';
+      } else if (detail.eventType === 'product_unfavorite') {
+        document.getElementById('hud-last-event').innerText = 'unfavorite (' + detail.productName + ')';
       }
     });
   </script>

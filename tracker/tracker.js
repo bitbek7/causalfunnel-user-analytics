@@ -1,26 +1,30 @@
 /**
  * CausalFunnel Client-Side Tracking SDK (tracker.js)
  *
- * Lightweight, zero-dependency telemetry SDK designed for high-throughput
- * e-commerce behavioral analytics.
+ * Lightweight, zero-dependency telemetry SDK for e-commerce analytics.
  *
- * Features:
- * - Tab-scoped session persistence using sessionStorage
- * - Automatic page_view event on initialization
- * - Global document click capture recording pageX, pageY coordinates
- * - Non-blocking asynchronous JSON event dispatch via fetch()
- * - Safe error boundaries: never interrupts or breaks host page functionality
- * - Configurable via <script data-api-endpoint="..."> attribute
+ * Capabilities:
+ * - Persistent session identification using localStorage (with sessionStorage fallback)
+ * - Automatic, de-duplicated page_view recording with page title
+ * - Full document-relative click tracking with exact (x, y) coordinates
+ * - Product interaction tracking: add_to_cart, product_favorite, product_unfavorite
+ * - Automatic product metadata extraction from DOM data-* attributes
+ * - Safe non-blocking asynchronous dispatch via fetch()
  */
 (function (window, document) {
   'use strict';
 
-  // Configuration Constants
+  // Prevent multiple initializations on the same page
+  if (window.__CF_TRACKER_INITIALIZED__) {
+    return;
+  }
+  window.__CF_TRACKER_INITIALIZED__ = true;
+
   const STORAGE_KEY = 'cf_session_id';
   const DEFAULT_ENDPOINT = 'http://localhost:5000/api/events';
 
   /**
-   * Resolve ingestion endpoint from script tag attributes or sensible defaults
+   * Resolve ingestion endpoint from script tag or sensible default
    */
   function resolveApiEndpoint() {
     try {
@@ -33,7 +37,6 @@
         return currentScript.getAttribute('data-api-endpoint');
       }
 
-      // If running on the same domain as the API
       if (window.location.port === '5000') {
         return '/api/events';
       }
@@ -46,23 +49,31 @@
   const API_ENDPOINT = resolveApiEndpoint();
 
   /**
-   * Retrieve existing session ID from sessionStorage or generate a fresh unique one
-   * Pattern: cf_sess_<timestamp>_<base36_random>
+   * Persistent Session Identification
+   * Uses localStorage so visitor retains the same session_id across page refreshes.
+   * Falls back to sessionStorage if localStorage is restricted.
    */
   function getOrCreateSessionId() {
     try {
-      let sessionId = sessionStorage.getItem(STORAGE_KEY);
+      let sessionId = localStorage.getItem(STORAGE_KEY);
+      if (!sessionId) {
+        sessionId = sessionStorage.getItem(STORAGE_KEY);
+      }
       if (!sessionId) {
         sessionId =
           'cf_' +
           Date.now().toString(36) +
           '_' +
           Math.random().toString(36).substring(2, 9);
-        sessionStorage.setItem(STORAGE_KEY, sessionId);
+        try {
+          localStorage.setItem(STORAGE_KEY, sessionId);
+        } catch (e) {}
+        try {
+          sessionStorage.setItem(STORAGE_KEY, sessionId);
+        } catch (e) {}
       }
       return sessionId;
     } catch (err) {
-      // In case cookies/storage are blocked by user privacy modes
       return 'cf_volatile_' + Math.random().toString(36).substring(2, 9);
     }
   }
@@ -76,7 +87,6 @@
     try {
       const serialized = JSON.stringify(payload);
 
-      // Prefer native fetch with keepalive to survive rapid page navigations
       if (typeof window.fetch === 'function') {
         fetch(API_ENDPOINT, {
           method: 'POST',
@@ -88,23 +98,19 @@
           keepalive: true
         })
           .then((response) => {
-            if (!response.ok) {
-              console.warn('[CausalFunnel Tracker] Ingestion responded with status:', response.status);
+            if (response.ok) {
+              notifyLocalWidgets(payload, true);
+            } else {
+              console.warn('[CausalFunnel Tracker] API returned status:', response.status);
+              notifyLocalWidgets(payload, false);
             }
           })
           .catch((networkErr) => {
-            // Fail silently to avoid breaking the host page
-            console.debug('[CausalFunnel Tracker] Network dispatch error:', networkErr.message);
+            console.debug('[CausalFunnel Tracker] Network error:', networkErr.message);
+            notifyLocalWidgets(payload, false);
           });
-      }
-
-      // Notify any local UI widgets (such as the demo page HUD)
-      if (typeof window.dispatchEvent === 'function') {
-        window.dispatchEvent(
-          new CustomEvent('cf_event_tracked', {
-            detail: payload
-          })
-        );
+      } else {
+        notifyLocalWidgets(payload, true);
       }
     } catch (err) {
       console.debug('[CausalFunnel Tracker] Dispatch failed silently:', err);
@@ -112,67 +118,94 @@
   }
 
   /**
+   * Notify local demo page HUD
+   */
+  function notifyLocalWidgets(payload, isSuccess) {
+    if (typeof window.dispatchEvent === 'function') {
+      window.dispatchEvent(
+        new CustomEvent('cf_event_tracked', {
+          detail: { ...payload, success: isSuccess }
+        })
+      );
+    }
+  }
+
+  /**
+   * Find product context from an element or its ancestors
+   */
+  function extractProductContext(element) {
+    if (!element || typeof element.closest !== 'function') return null;
+    const card = element.closest('[data-product-id]');
+    if (!card) return null;
+
+    return {
+      productId: card.getAttribute('data-product-id') || undefined,
+      productName: card.getAttribute('data-product-name') || undefined,
+      productCategory: card.getAttribute('data-product-category') || undefined
+    };
+  }
+
+  /**
    * Record a page_view event
    */
-  function trackPageView() {
+  let pageViewRecorded = false;
+  function trackPageView(customMeta) {
+    if (pageViewRecorded) return;
+    pageViewRecorded = true;
+
     const payload = {
       sessionId: sessionId,
       eventType: 'page_view',
       pageUrl: window.location.pathname || '/',
+      pageTitle: document.title || 'Demo Store',
       timestamp: new Date().toISOString(),
+      source: 'demo_store',
       viewport: {
         width: window.innerWidth || document.documentElement.clientWidth,
         height: window.innerHeight || document.documentElement.clientHeight
-      }
+      },
+      ...(customMeta || {})
     };
 
     dispatchEvent(payload);
   }
 
   /**
-   * Record a click event with page-relative coordinates (x, y)
+   * Record a click event with exact document-relative (x, y) coordinates
    */
   function trackClick(event) {
     try {
-      // Calculate document-relative coordinates (handling scrolling)
-      let pageX =
-        event.pageX !== undefined && event.pageX !== null
-          ? event.pageX
-          : event.clientX + (document.documentElement.scrollLeft || document.body.scrollLeft);
+      const scrollX = window.scrollX || window.pageXOffset || document.documentElement.scrollLeft || 0;
+      const scrollY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0;
 
-      let pageY =
-        event.pageY !== undefined && event.pageY !== null
-          ? event.pageY
-          : event.clientY + (document.documentElement.scrollTop || document.body.scrollTop);
+      let pageX = event.pageX;
+      let pageY = event.pageY;
+
+      if (pageX === undefined || pageX === null) {
+        pageX = event.clientX !== undefined ? event.clientX + scrollX : undefined;
+      }
+      if (pageY === undefined || pageY === null) {
+        pageY = event.clientY !== undefined ? event.clientY + scrollY : undefined;
+      }
 
       const target = event.target || {};
 
-      // Robust Coordinate Resolution:
-      // In synthetic clicks (e.g. element.click()) or keyboard activation (Enter/Space on focused buttons),
-      // browser MouseEvents often arrive with pageX = 0, pageY = 0 or clientX = 0.
-      // If the target element has non-zero bounding box coordinates, resolve the exact center of the clicked element!
+      // If synthetic click, keyboard event, or missing coordinates, resolve to element center
       if (typeof target.getBoundingClientRect === 'function') {
         const rect = target.getBoundingClientRect();
-        if (rect.width > 0 || rect.height > 0) {
-          const scrollX = window.scrollX || window.pageXOffset || document.documentElement.scrollLeft || 0;
-          const scrollY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0;
-
-          // If coordinates are 0 while element is positioned elsewhere on screen, use element center
-          if (pageX === 0 && rect.left > 0) {
-            pageX = Math.round(rect.left + scrollX + rect.width / 2);
-          }
-          if (pageY === 0 && rect.top > 0) {
-            pageY = Math.round(rect.top + scrollY + rect.height / 2);
-          }
-          // If both coordinates were 0 (top-left fallback), resolve fully to element center
-          if (pageX === 0 && pageY === 0) {
-            pageX = Math.round(rect.left + scrollX + rect.width / 2);
-            pageY = Math.round(rect.top + scrollY + rect.height / 2);
-          }
+        if (pageX === undefined || pageX === null || pageX === 0 || isNaN(pageX)) {
+          pageX = Math.round(rect.left + scrollX + (rect.width > 0 ? rect.width / 2 : 0));
+        }
+        if (pageY === undefined || pageY === null || pageY === 0 || isNaN(pageY)) {
+          pageY = Math.round(rect.top + scrollY + (rect.height > 0 ? rect.height / 2 : 0));
         }
       }
 
-      // Extract brief non-PII target metadata for richer analytical context
+      // Default safe coordinate if still missing
+      if (pageX === undefined || isNaN(pageX)) pageX = 0;
+      if (pageY === undefined || isNaN(pageY)) pageY = 0;
+
+
       const tagName = (target.tagName || 'UNKNOWN').toUpperCase();
       let textSnippet = '';
 
@@ -180,23 +213,27 @@
         textSnippet = target.innerText.trim().slice(0, 60);
       } else if (target.value) {
         textSnippet = String(target.value).trim().slice(0, 60);
-      } else if (target.alt) {
-        textSnippet = String(target.alt).trim().slice(0, 60);
       }
+
+      // Check if clicked element relates to a product
+      const productContext = extractProductContext(target);
 
       const payload = {
         sessionId: sessionId,
         eventType: 'click',
         pageUrl: window.location.pathname || '/',
+        pageTitle: document.title,
         timestamp: new Date().toISOString(),
         x: Math.round(pageX),
         y: Math.round(pageY),
+        source: 'demo_store',
+        elementTag: tagName,
+        elementText: textSnippet,
         viewport: {
           width: window.innerWidth || document.documentElement.clientWidth,
           height: window.innerHeight || document.documentElement.clientHeight
         },
-        elementTag: tagName,
-        elementText: textSnippet
+        ...(productContext || {})
       };
 
       dispatchEvent(payload);
@@ -206,32 +243,88 @@
   }
 
   /**
+   * Explicit Business Event Tracking APIs
+   */
+  function trackAddToCart(productData) {
+    if (!productData || !productData.productId) return;
+
+    const payload = {
+      sessionId: sessionId,
+      eventType: 'add_to_cart',
+      pageUrl: window.location.pathname || '/',
+      pageTitle: document.title,
+      timestamp: new Date().toISOString(),
+      productId: String(productData.productId),
+      productName: String(productData.productName || productData.productId),
+      productCategory: productData.productCategory || undefined,
+      source: 'demo_store'
+    };
+
+    dispatchEvent(payload);
+  }
+
+  function trackFavorite(productData) {
+    if (!productData || !productData.productId) return;
+
+    const payload = {
+      sessionId: sessionId,
+      eventType: 'product_favorite',
+      pageUrl: window.location.pathname || '/',
+      pageTitle: document.title,
+      timestamp: new Date().toISOString(),
+      productId: String(productData.productId),
+      productName: String(productData.productName || productData.productId),
+      productCategory: productData.productCategory || undefined,
+      source: 'demo_store'
+    };
+
+    dispatchEvent(payload);
+  }
+
+  function trackUnfavorite(productData) {
+    if (!productData || !productData.productId) return;
+
+    const payload = {
+      sessionId: sessionId,
+      eventType: 'product_unfavorite',
+      pageUrl: window.location.pathname || '/',
+      pageTitle: document.title,
+      timestamp: new Date().toISOString(),
+      productId: String(productData.productId),
+      productName: String(productData.productName || productData.productId),
+      productCategory: productData.productCategory || undefined,
+      source: 'demo_store'
+    };
+
+    dispatchEvent(payload);
+  }
+
+  /**
    * Initialize Tracker
    */
   function initialize() {
-    // 1. Dispatch initial page_view event
+    // 1. Initial Page View
     if (document.readyState === 'complete' || document.readyState === 'interactive') {
       trackPageView();
     } else {
-      window.addEventListener('DOMContentLoaded', trackPageView, { once: true });
+      window.addEventListener('DOMContentLoaded', () => trackPageView(), { once: true });
     }
 
-    // 2. Attach global document click listener
+    // 2. Global Document Click Listener
     document.addEventListener('click', trackClick, { passive: true, capture: true });
 
-    // Expose minimal diagnostics API onto window object
+    // Expose Global Public API onto window
     window.CausalTracker = {
-      version: '1.0.0',
-      getSessionId: function () {
-        return sessionId;
-      },
-      getEndpoint: function () {
-        return API_ENDPOINT;
-      },
-      trackCustomPageView: trackPageView
+      version: '1.1.0',
+      getSessionId: () => sessionId,
+      getEndpoint: () => API_ENDPOINT,
+      trackPageView,
+      trackAddToCart,
+      trackFavorite,
+      trackUnfavorite
     };
 
-    console.log(`[CausalFunnel Tracker v1.0.0] Active for session: ${sessionId} -> ${API_ENDPOINT}`);
+    console.log(`[CausalFunnel Tracker] Initialized for session: ${sessionId} -> ${API_ENDPOINT}`);
   }
 
   initialize();

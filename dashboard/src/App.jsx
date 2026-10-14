@@ -4,36 +4,62 @@ import OverviewMetrics from './components/OverviewMetrics';
 import SessionsView from './components/SessionsView';
 import UserJourney from './components/UserJourney';
 import HeatmapView from './components/HeatmapView';
-import { fetchSessions, fetchSessionEvents, fetchHealth } from './services/api';
+import ProductRankings from './components/ProductRankings';
+import {
+  fetchSessions,
+  fetchSessionEvents,
+  fetchHealth,
+  fetchProductRankings
+} from './services/api';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('sessions'); // 'sessions' | 'heatmap'
+  const [activeTab, setActiveTab] = useState('sessions'); // 'sessions' | 'products' | 'heatmap'
   const [sessions, setSessions] = useState([]);
   const [selectedSessionId, setSelectedSessionId] = useState(null);
   const [sessionEvents, setSessionEvents] = useState([]);
 
+  const [productRankings, setProductRankings] = useState({
+    mostClicked: [],
+    mostAddedToCart: [],
+    mostFavorited: []
+  });
+
   const [loadingSessions, setLoadingSessions] = useState(true);
   const [loadingEvents, setLoadingEvents] = useState(false);
+  const [loadingRankings, setLoadingRankings] = useState(false);
+
   const [eventsError, setEventsError] = useState(null);
+  const [rankingsError, setRankingsError] = useState(null);
 
   const [isLive, setIsLive] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Load real telemetry sessions & backend health
+  // Load real telemetry sessions, product rankings & backend health
   const loadInitialData = useCallback(async (silent = false) => {
-    if (!silent) setLoadingSessions(true);
+    if (!silent) {
+      setLoadingSessions(true);
+      setLoadingRankings(true);
+    }
     setIsRefreshing(true);
 
     try {
-      const [healthRes, sessionsRes] = await Promise.all([
+      const [healthRes, sessionsRes, rankingsRes] = await Promise.all([
         fetchHealth().catch(() => ({ status: 'down' })),
-        fetchSessions().catch(() => ({ data: [] }))
+        fetchSessions().catch(() => ({ data: [] })),
+        fetchProductRankings().catch((err) => ({ rankings: { mostClicked: [], mostAddedToCart: [], mostFavorited: [] }, error: err.message }))
       ]);
 
       setIsLive(healthRes.status === 'healthy');
 
       const fetchedSessions = sessionsRes.data || [];
       setSessions(fetchedSessions);
+
+      if (rankingsRes.rankings) {
+        setProductRankings(rankingsRes.rankings);
+        setRankingsError(null);
+      } else if (rankingsRes.error) {
+        setRankingsError(rankingsRes.error);
+      }
 
       // Auto-select first session if none is selected
       if (fetchedSessions.length > 0 && !selectedSessionId) {
@@ -44,6 +70,7 @@ export default function App() {
       setIsLive(false);
     } finally {
       setLoadingSessions(false);
+      setLoadingRankings(false);
       setIsRefreshing(false);
     }
   }, [selectedSessionId]);
@@ -129,10 +156,35 @@ export default function App() {
                 error={eventsError}
               />
             </div>
+
+            {/* Product Interaction Rankings Section */}
+            <ProductRankings
+              rankings={productRankings}
+              loading={loadingRankings}
+              error={rankingsError}
+              onRefresh={() => loadInitialData(false)}
+            />
           </div>
         )}
 
-        {/* VIEW 2: Click Heatmap Explorer */}
+        {/* VIEW 2: Dedicated Product Analytics Tab */}
+        {activeTab === 'products' && (
+          <div>
+            <div className="section-hero">
+              <h1>Product <span className="brand-accent">Analytics</span></h1>
+              <p>Track direct engagement, cart additions, and active favorites across the store.</p>
+            </div>
+
+            <ProductRankings
+              rankings={productRankings}
+              loading={loadingRankings}
+              error={rankingsError}
+              onRefresh={() => loadInitialData(false)}
+            />
+          </div>
+        )}
+
+        {/* VIEW 3: Click Heatmap Explorer */}
         {activeTab === 'heatmap' && (
           <HeatmapView />
         )}

@@ -614,6 +614,24 @@ body::before {
   color: var(--cf-amber);
 }
 
+.icon-cart {
+  background: #ffffff;
+  border: 2px solid var(--cf-emerald);
+  color: var(--cf-emerald);
+}
+
+.icon-fav {
+  background: #ffffff;
+  border: 2px solid var(--cf-rose);
+  color: var(--cf-rose);
+}
+
+.icon-unfav {
+  background: #ffffff;
+  border: 2px solid var(--text-light);
+  color: var(--text-light);
+}
+
 .journey-step-box {
   flex-grow: 1;
   background: #ffffff;
@@ -780,4 +798,14 @@ body::before {
   .section-hero h1 {
     font-size: 30px;
   }
+  .product-rankings-grid {
+    grid-template-columns: 1fr !important;
+  }
 }
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .product-rankings-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+

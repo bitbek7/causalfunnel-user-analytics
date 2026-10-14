@@ -10,6 +10,74 @@ function formatTimestamp(isoString) {
   }
 }
 
+function getEventConfig(eventType) {
+  switch (eventType) {
+    case 'page_view':
+      return {
+        label: 'PAGE VIEW',
+        iconClass: 'icon-pv',
+        iconSymbol: '👁️',
+        color: 'var(--cf-blue)',
+        badgeBg: '#eff6ff',
+        badgeBorder: '#bfdbfe'
+      };
+    case 'click':
+      return {
+        label: 'CLICK',
+        iconClass: 'icon-clk',
+        iconSymbol: '🖱️',
+        color: '#b45309',
+        badgeBg: '#fffbeb',
+        badgeBorder: '#fde68a'
+      };
+    case 'add_to_cart':
+      return {
+        label: 'ADD TO CART',
+        iconClass: 'icon-cart',
+        iconSymbol: '🛒',
+        color: '#059669',
+        badgeBg: '#ecfdf5',
+        badgeBorder: '#a7f3d0'
+      };
+    case 'product_favorite':
+      return {
+        label: 'FAVORITE',
+        iconClass: 'icon-fav',
+        iconSymbol: '❤️',
+        color: '#e11d48',
+        badgeBg: '#fff1f2',
+        badgeBorder: '#fecdd3'
+      };
+    case 'product_unfavorite':
+      return {
+        label: 'UNFAVORITE',
+        iconClass: 'icon-unfav',
+        iconSymbol: '💔',
+        color: '#64748b',
+        badgeBg: '#f1f5f9',
+        badgeBorder: '#e2e8f0'
+      };
+    case 'product_view':
+      return {
+        label: 'PRODUCT VIEW',
+        iconClass: 'icon-pv',
+        iconSymbol: '🔍',
+        color: '#7c3aed',
+        badgeBg: '#f5f3ff',
+        badgeBorder: '#ddd6fe'
+      };
+    default:
+      return {
+        label: (eventType || 'EVENT').toUpperCase(),
+        iconClass: 'icon-pv',
+        iconSymbol: '⚡',
+        color: 'var(--text-secondary)',
+        badgeBg: '#f8fafc',
+        badgeBorder: '#e2e8f0'
+      };
+  }
+}
+
 export default function UserJourney({
   sessionId,
   events = [],
@@ -86,15 +154,14 @@ export default function UserJourney({
       ) : (
         <div className="journey-timeline-body" id="journey-timeline-container">
           {events.map((event, idx) => {
+            const config = getEventConfig(event.eventType);
             const isClick = event.eventType === 'click';
-            const iconClass = isClick ? 'icon-clk' : 'icon-pv';
-            const iconSymbol = isClick ? '🖱️' : '👁️';
 
             return (
               <div className="journey-step-item" key={event._id || idx} id={`journey-step-${idx + 1}`}>
                 {/* Step Marker */}
-                <div className={`journey-step-icon ${iconClass}`} title={`Step ${idx + 1}: ${event.eventType}`}>
-                  {iconSymbol}
+                <div className={`journey-step-icon ${config.iconClass}`} title={`Step ${idx + 1}: ${event.eventType}`}>
+                  {config.iconSymbol}
                 </div>
 
                 {/* Step Content Card */}
@@ -102,9 +169,16 @@ export default function UserJourney({
                   <div className="step-header-meta">
                     <span
                       className="step-type-title"
-                      style={{ color: isClick ? '#b45309' : 'var(--cf-blue)' }}
+                      style={{
+                        color: config.color,
+                        background: config.badgeBg,
+                        border: `1px solid ${config.badgeBorder}`,
+                        padding: '2px 8px',
+                        borderRadius: '6px',
+                        fontSize: '11px'
+                      }}
                     >
-                      Step {idx + 1}: {event.eventType === 'page_view' ? 'PAGE VIEW' : 'CLICK'}
+                      Step {idx + 1}: {config.label}
                     </span>
                     <span className="step-time-text">
                       {formatTimestamp(event.timestamp)}
@@ -116,11 +190,57 @@ export default function UserJourney({
                     </span>
                   </div>
 
+                  {/* Page Title & URL */}
                   <div className="step-page-path">
-                    📍 {event.pageUrl}
+                    {event.pageTitle && (
+                      <span style={{ fontWeight: 600, color: 'var(--text-primary)', marginRight: '6px' }}>
+                        {event.pageTitle} •
+                      </span>
+                    )}
+                    <span>📍 {event.pageUrl}</span>
                   </div>
 
-                  {/* Click Specific Coordinates & Target */}
+                  {/* Product Metadata Badge if attached to event */}
+                  {event.productName && (
+                    <div
+                      style={{
+                        marginTop: '8px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '4px 10px',
+                        background: '#f8fafc',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '8px',
+                        fontSize: '12px'
+                      }}
+                    >
+                      <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
+                        🎧 {event.productName}
+                      </span>
+                      {event.productId && (
+                        <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', fontSize: '11px' }}>
+                          ({event.productId})
+                        </span>
+                      )}
+                      {event.productCategory && (
+                        <span
+                          style={{
+                            background: '#e0f2fe',
+                            color: '#0369a1',
+                            padding: '1px 6px',
+                            borderRadius: '4px',
+                            fontSize: '10.5px',
+                            fontWeight: 600
+                          }}
+                        >
+                          {event.productCategory}
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Click Specific Coordinates & Element Info */}
                   {isClick && (
                     <div style={{ marginTop: '8px', display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
                       <span className="click-coord-badge" title="Exact document coordinates">

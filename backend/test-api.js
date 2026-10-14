@@ -79,15 +79,60 @@ async function runTests() {
   const t7Passed = heatmapData.totalClicks === 1 && heatmapData.clicks[0].x === 420 && heatmapData.clicks[0].y === 180;
   console.log(`[${t7Passed ? 'PASS' : 'FAIL'}] 7. GET /api/heatmap -> returned ${heatmapData.totalClicks} clicks with coordinates (x: ${heatmapData.clicks?.[0]?.x}, y: ${heatmapData.clicks?.[0]?.y})`);
 
-  const allPassed = t1Passed && t2Passed && t3Passed && t4Passed && t5Passed && t6Passed && t7Passed;
+  // Test 8: Add to Cart Event
+  const cartRes = await fetch(`${BASE_URL}/events`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      sessionId: testSessionId,
+      eventType: 'add_to_cart',
+      pageUrl: testPageUrl,
+      productId: 'prod_aura_pro',
+      productName: 'Aura Pro Studio',
+      productCategory: 'Studio Headphones',
+      source: 'demo_store'
+    })
+  });
+  const t8Passed = cartRes.status === 201;
+  console.log(`[${t8Passed ? 'PASS' : 'FAIL'}] 8. POST /api/events (add_to_cart) -> status: ${cartRes.status}, product: prod_aura_pro`);
+
+  // Test 9: Favorite Event
+  const favRes = await fetch(`${BASE_URL}/events`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      sessionId: testSessionId,
+      eventType: 'product_favorite',
+      pageUrl: testPageUrl,
+      productId: 'prod_aura_pro',
+      productName: 'Aura Pro Studio',
+      productCategory: 'Studio Headphones',
+      source: 'demo_store'
+    })
+  });
+  const t9Passed = favRes.status === 201;
+  console.log(`[${t9Passed ? 'PASS' : 'FAIL'}] 9. POST /api/events (product_favorite) -> status: ${favRes.status}`);
+
+  // Test 10: Product Rankings API
+  const rankRes = await fetch(`${BASE_URL}/products/rankings`);
+  const rankData = await rankRes.json();
+  const t10Passed = rankRes.status === 200 &&
+    rankData.success === true &&
+    Array.isArray(rankData.rankings?.mostClicked) &&
+    Array.isArray(rankData.rankings?.mostAddedToCart) &&
+    Array.isArray(rankData.rankings?.mostFavorited);
+  console.log(`[${t10Passed ? 'PASS' : 'FAIL'}] 10. GET /api/products/rankings -> status: ${rankRes.status}, returned rankings categories`);
+
+  const allPassed = t1Passed && t2Passed && t3Passed && t4Passed && t5Passed && t6Passed && t7Passed && t8Passed && t9Passed && t10Passed;
 
   if (allPassed) {
-    console.log('\n🎉 ALL 7 MANDATORY BACKEND API VERIFICATIONS PASSED 100%!');
+    console.log('\n🎉 ALL 10 MANDATORY BACKEND API VERIFICATIONS PASSED 100%!');
   } else {
     console.error('\n❌ SOME TESTS FAILED');
     process.exit(1);
   }
 }
+
 
 runTests().catch(err => {
   console.error('Test execution error:', err);

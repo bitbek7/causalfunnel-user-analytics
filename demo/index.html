@@ -12,7 +12,7 @@
   <div class="tracker-hud" id="tracker-hud">
     <div class="hud-header">
       <span><span class="status-dot"></span>CausalFunnel Tracker</span>
-      <span style="font-size:10px; opacity:0.8;">LIVE</span>
+      <span style="font-size:10px; opacity:0.8;" id="hud-status-badge">CONNECTED</span>
     </div>
     <div class="hud-row">
       <span>Session ID:</span>
@@ -62,7 +62,7 @@
       <div class="section-header">
         <div>
           <h2 class="section-title">Featured Acoustics</h2>
-          <p class="section-desc">Click any product or button to generate real tracked user interactions.</p>
+          <p class="section-desc">Click any product, favorite a model, or add to cart to generate real tracked user interactions.</p>
         </div>
         <div>
           <button class="btn-secondary" id="btn-filter-all" style="padding:6px 16px; font-size:13px;">View All (8)</button>
@@ -71,7 +71,13 @@
 
       <div class="product-grid">
         <!-- Product 1 -->
-        <article class="product-card" id="card-aura-pro">
+        <article
+          class="product-card"
+          id="card-aura-pro"
+          data-product-id="prod_aura_pro"
+          data-product-name="Aura Pro Studio"
+          data-product-category="Over-Ear ANC"
+        >
           <div class="product-img-box">
             <span class="product-img-placeholder">🎧</span>
           </div>
@@ -81,13 +87,33 @@
             <p class="product-price">$349.00</p>
           </div>
           <div class="card-actions">
-            <button class="btn-card-add" id="btn-add-aura-pro" onclick="incrementCart('Aura Pro Studio')">Add to Cart</button>
-            <a href="product.html" class="btn-card-view" id="link-view-aura-pro">Details</a>
+            <button
+              class="btn-card-add"
+              id="btn-add-aura-pro"
+              onclick="handleAddToCart('prod_aura_pro', 'Aura Pro Studio', 'Over-Ear ANC')"
+            >
+              Add to Cart
+            </button>
+            <button
+              class="btn-card-favorite"
+              id="fav-btn-prod_aura_pro"
+              onclick="toggleFavorite('prod_aura_pro', 'Aura Pro Studio', 'Over-Ear ANC')"
+              title="Add to Favorites"
+            >
+              ♡
+            </button>
+            <a href="product.html?id=prod_aura_pro" class="btn-card-view" id="link-view-aura-pro">Details</a>
           </div>
         </article>
 
         <!-- Product 2 -->
-        <article class="product-card" id="card-aura-air">
+        <article
+          class="product-card"
+          id="card-aura-air"
+          data-product-id="prod_aura_air"
+          data-product-name="Aura Air Pods"
+          data-product-category="Wireless Earbuds"
+        >
           <div class="product-img-box">
             <span class="product-img-placeholder">🎵</span>
           </div>
@@ -97,13 +123,33 @@
             <p class="product-price">$199.00</p>
           </div>
           <div class="card-actions">
-            <button class="btn-card-add" id="btn-add-aura-air" onclick="incrementCart('Aura Air Pods')">Add to Cart</button>
-            <a href="product.html" class="btn-card-view" id="link-view-aura-air">Details</a>
+            <button
+              class="btn-card-add"
+              id="btn-add-aura-air"
+              onclick="handleAddToCart('prod_aura_air', 'Aura Air Pods', 'Wireless Earbuds')"
+            >
+              Add to Cart
+            </button>
+            <button
+              class="btn-card-favorite"
+              id="fav-btn-prod_aura_air"
+              onclick="toggleFavorite('prod_aura_air', 'Aura Air Pods', 'Wireless Earbuds')"
+              title="Add to Favorites"
+            >
+              ♡
+            </button>
+            <a href="product.html?id=prod_aura_air" class="btn-card-view" id="link-view-aura-air">Details</a>
           </div>
         </article>
 
         <!-- Product 3 -->
-        <article class="product-card" id="card-aura-stage">
+        <article
+          class="product-card"
+          id="card-aura-stage"
+          data-product-id="prod_aura_stage"
+          data-product-name="Aura Stage 360"
+          data-product-category="Home Speaker"
+        >
           <div class="product-img-box">
             <span class="product-img-placeholder">📻</span>
           </div>
@@ -113,13 +159,33 @@
             <p class="product-price">$499.00</p>
           </div>
           <div class="card-actions">
-            <button class="btn-card-add" id="btn-add-aura-stage" onclick="incrementCart('Aura Stage 360')">Add to Cart</button>
-            <a href="product.html" class="btn-card-view" id="link-view-aura-stage">Details</a>
+            <button
+              class="btn-card-add"
+              id="btn-add-aura-stage"
+              onclick="handleAddToCart('prod_aura_stage', 'Aura Stage 360', 'Home Speaker')"
+            >
+              Add to Cart
+            </button>
+            <button
+              class="btn-card-favorite"
+              id="fav-btn-prod_aura_stage"
+              onclick="toggleFavorite('prod_aura_stage', 'Aura Stage 360', 'Home Speaker')"
+              title="Add to Favorites"
+            >
+              ♡
+            </button>
+            <a href="product.html?id=prod_aura_stage" class="btn-card-view" id="link-view-aura-stage">Details</a>
           </div>
         </article>
 
         <!-- Product 4 -->
-        <article class="product-card" id="card-aura-bass">
+        <article
+          class="product-card"
+          id="card-aura-bass"
+          data-product-id="prod_aura_bass"
+          data-product-name="Aura Bass Sub"
+          data-product-category="Subwoofer"
+        >
           <div class="product-img-box">
             <span class="product-img-placeholder">🔊</span>
           </div>
@@ -129,21 +195,115 @@
             <p class="product-price">$399.00</p>
           </div>
           <div class="card-actions">
-            <button class="btn-card-add" id="btn-add-aura-bass" onclick="incrementCart('Aura Bass Sub')">Add to Cart</button>
-            <a href="product.html" class="btn-card-view" id="link-view-aura-bass">Details</a>
+            <button
+              class="btn-card-add"
+              id="btn-add-aura-bass"
+              onclick="handleAddToCart('prod_aura_bass', 'Aura Bass Sub', 'Subwoofer')"
+            >
+              Add to Cart
+            </button>
+            <button
+              class="btn-card-favorite"
+              id="fav-btn-prod_aura_bass"
+              onclick="toggleFavorite('prod_aura_bass', 'Aura Bass Sub', 'Subwoofer')"
+              title="Add to Favorites"
+            >
+              ♡
+            </button>
+            <a href="product.html?id=prod_aura_bass" class="btn-card-view" id="link-view-aura-bass">Details</a>
           </div>
         </article>
       </div>
     </section>
   </main>
 
-  <!-- Interactive Cart Script -->
+  <!-- Interactive Cart & Favorites Script -->
   <script>
     let cartCount = 0;
-    function incrementCart(itemName) {
+
+    // Handle real Add to Cart action + telemetry dispatch
+    function handleAddToCart(productId, productName, productCategory) {
       cartCount++;
       document.getElementById('cart-counter').innerText = cartCount;
+
+      if (window.CausalTracker && typeof window.CausalTracker.trackAddToCart === 'function') {
+        window.CausalTracker.trackAddToCart({
+          productId,
+          productName,
+          productCategory
+        });
+      }
     }
+
+    // Handle real Favorites toggle + telemetry dispatch
+    function getStoredFavorites() {
+      try {
+        const stored = localStorage.getItem('cf_user_favorites');
+        return stored ? JSON.parse(stored) : {};
+      } catch (e) {
+        return {};
+      }
+    }
+
+    function saveStoredFavorites(favs) {
+      try {
+        localStorage.setItem('cf_user_favorites', JSON.stringify(favs));
+      } catch (e) {}
+    }
+
+    function updateFavoriteButtonUI(productId, isFav) {
+      const btn = document.getElementById('fav-btn-' + productId);
+      if (btn) {
+        if (isFav) {
+          btn.classList.add('active');
+          btn.innerHTML = '❤️';
+          btn.title = 'Remove from Favorites';
+        } else {
+          btn.classList.remove('active');
+          btn.innerHTML = '♡';
+          btn.title = 'Add to Favorites';
+        }
+      }
+    }
+
+    function toggleFavorite(productId, productName, productCategory) {
+      const favs = getStoredFavorites();
+      const isCurrentlyFav = !!favs[productId];
+
+      if (isCurrentlyFav) {
+        delete favs[productId];
+        saveStoredFavorites(favs);
+        updateFavoriteButtonUI(productId, false);
+
+        if (window.CausalTracker && typeof window.CausalTracker.trackUnfavorite === 'function') {
+          window.CausalTracker.trackUnfavorite({
+            productId,
+            productName,
+            productCategory
+          });
+        }
+      } else {
+        favs[productId] = { productName, productCategory, at: Date.now() };
+        saveStoredFavorites(favs);
+        updateFavoriteButtonUI(productId, true);
+
+        if (window.CausalTracker && typeof window.CausalTracker.trackFavorite === 'function') {
+          window.CausalTracker.trackFavorite({
+            productId,
+            productName,
+            productCategory
+          });
+        }
+      }
+    }
+
+    // Initialize favorite button UI from localStorage
+    document.addEventListener('DOMContentLoaded', function() {
+      const favs = getStoredFavorites();
+      Object.keys(favs).forEach(function(pid) {
+        updateFavoriteButtonUI(pid, true);
+      });
+    });
 
     // Telemetry HUD synchronization
     let eventTally = 0;
@@ -157,6 +317,12 @@
         document.getElementById('hud-last-event').innerText = 'page_view (' + detail.pageUrl + ')';
       } else if (detail.eventType === 'click') {
         document.getElementById('hud-last-event').innerText = 'click (' + detail.x + ', ' + detail.y + ')';
+      } else if (detail.eventType === 'add_to_cart') {
+        document.getElementById('hud-last-event').innerText = 'add_to_cart (' + detail.productName + ')';
+      } else if (detail.eventType === 'product_favorite') {
+        document.getElementById('hud-last-event').innerText = 'favorite (' + detail.productName + ')';
+      } else if (detail.eventType === 'product_unfavorite') {
+        document.getElementById('hud-last-event').innerText = 'unfavorite (' + detail.productName + ')';
       }
     });
   </script>

@@ -48,6 +48,15 @@ export default function Navbar({
           </button>
 
           <button
+            id="tab-products"
+            className={`nav-tab-btn ${activeTab === 'products' ? 'active' : ''}`}
+            onClick={() => setActiveTab('products')}
+          >
+            <span>🛍️</span>
+            <span>Product Analytics</span>
+          </button>
+
+          <button
             id="tab-heatmap"
             className={`nav-tab-btn ${activeTab === 'heatmap' ? 'active' : ''}`}
             onClick={() => setActiveTab('heatmap')}
@@ -56,6 +65,7 @@ export default function Navbar({
             <span>Click Heatmap</span>
           </button>
         </nav>
+
 
         {/* Right: API Connection Status & Refresh Button */}
         <div className="nav-actions">

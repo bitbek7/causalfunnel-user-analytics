@@ -1,7 +1,7 @@
 const Event = require('../models/Event');
 
 /**
- * Ingest and store an event (page_view or click)
+ * Ingest and store an event (page_view, click, add_to_cart, product_favorite, etc.)
  * POST /api/events
  */
 async function createEvent(req, res) {
@@ -17,8 +17,14 @@ async function createEvent(req, res) {
         sessionId: newEvent.sessionId,
         eventType: newEvent.eventType,
         pageUrl: newEvent.pageUrl,
+        pageTitle: newEvent.pageTitle,
         timestamp: newEvent.timestamp,
-        ...(newEvent.eventType === 'click' && { x: newEvent.x, y: newEvent.y })
+        ...(newEvent.eventType === 'click' && { x: newEvent.x, y: newEvent.y }),
+        ...(newEvent.productId && {
+          productId: newEvent.productId,
+          productName: newEvent.productName,
+          productCategory: newEvent.productCategory
+        })
       }
     });
   } catch (err) {

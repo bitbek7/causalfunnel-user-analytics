@@ -2,12 +2,11 @@ const mongoose = require('mongoose');
 
 /**
  * Event Schema for telemetry event stream
- * Complies with CausalFunnel assignment requirements:
- * - session_id: user browsing session identifier
- * - event_type: 'page_view' or 'click'
- * - page_url: URL where event occurred
- * - timestamp: ISO client timestamp
- * - x, y: coordinates for click events
+ * Supports page views, generic clicks, and product-specific interactions:
+ * - add_to_cart
+ * - product_favorite
+ * - product_unfavorite
+ * - product_view
  */
 const EventSchema = new mongoose.Schema(
   {
@@ -21,8 +20,15 @@ const EventSchema = new mongoose.Schema(
       type: String,
       required: [true, 'eventType is mandatory'],
       enum: {
-        values: ['page_view', 'click'],
-        message: 'Invalid eventType: {VALUE}. Must be "page_view" or "click".'
+        values: [
+          'page_view',
+          'click',
+          'add_to_cart',
+          'product_favorite',
+          'product_unfavorite',
+          'product_view'
+        ],
+        message: 'Invalid eventType: {VALUE}.'
       },
       index: true
     },
@@ -32,13 +38,17 @@ const EventSchema = new mongoose.Schema(
       trim: true,
       index: true
     },
+    pageTitle: {
+      type: String,
+      trim: true
+    },
     timestamp: {
       type: Date,
       required: [true, 'timestamp is mandatory'],
       default: Date.now,
       index: true
     },
-    // Click coordinates (mandatory if eventType === 'click')
+    // Click coordinates (only mandatory if eventType === 'click')
     x: {
       type: Number,
       required: [
@@ -59,7 +69,28 @@ const EventSchema = new mongoose.Schema(
       ],
       min: [0, 'y coordinate cannot be negative']
     },
-    // Optional diagnostics and responsive context
+    // Product Identification fields
+    productId: {
+      type: String,
+      trim: true,
+      index: true
+    },
+    productName: {
+      type: String,
+      trim: true
+    },
+    productCategory: {
+      type: String,
+      trim: true
+    },
+    // Source identifier to ensure strict data separation from dashboard
+    source: {
+      type: String,
+      trim: true,
+      default: 'demo_store',
+      index: true
+    },
+    // Optional diagnostics
     viewport: {
       width: { type: Number },
       height: { type: Number }
@@ -73,7 +104,6 @@ const EventSchema = new mongoose.Schema(
       trim: true,
       maxlength: 120
     },
-    // Diagnostic server timestamp
     receivedAt: {
       type: Date,
       default: Date.now
@@ -86,14 +116,10 @@ const EventSchema = new mongoose.Schema(
 );
 
 // Compound indexes for optimal query execution
-// 1. For chronological user journey: find by sessionId sorted by timestamp
 EventSchema.index({ sessionId: 1, timestamp: 1 });
-
-// 2. For heatmap queries: find by pageUrl where eventType is 'click'
 EventSchema.index({ pageUrl: 1, eventType: 1 });
-
-// 3. For aggregate session listing
-EventSchema.index({ eventType: 1, sessionId: 1 });
+EventSchema.index({ eventType: 1, productId: 1 });
+EventSchema.index({ source: 1, eventType: 1 });
 
 const Event = mongoose.model('Event', EventSchema);
 

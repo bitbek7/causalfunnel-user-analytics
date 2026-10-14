@@ -28,6 +28,12 @@ export async function fetchTrackedPages() {
   return res.json();
 }
 
+export async function fetchProductRankings() {
+  const res = await fetch(`${API_BASE}/products/rankings`);
+  if (!res.ok) throw new Error(`Failed to fetch product rankings (${res.status})`);
+  return res.json();
+}
+
 export async function fetchHealth() {
   const res = await fetch(`${API_BASE}/health`);
   if (!res.ok) throw new Error(`Health check failed (${res.status})`);
@@ -42,3 +48,4 @@ export async function seedDemoData() {
   if (!res.ok) throw new Error(`Seed failed (${res.status})`);
   return res.json();
 }
+

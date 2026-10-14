@@ -21,13 +21,13 @@ export default function App() {
   const [isSeeding, setIsSeeding] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
 
-  // Show brief feedback toast
+  // Show transient toast
   const showToast = (msg) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  // Load health and sessions
+  // Load real telemetry sessions & backend health
   const loadInitialData = useCallback(async (silent = false) => {
     if (!silent) setLoadingSessions(true);
     setIsRefreshing(true);
@@ -43,7 +43,7 @@ export default function App() {
       const fetchedSessions = sessionsRes.data || [];
       setSessions(fetchedSessions);
 
-      // Auto-select first session if none selected yet
+      // Auto-select first session if none is selected
       if (fetchedSessions.length > 0 && !selectedSessionId) {
         setSelectedSessionId(fetchedSessions[0].sessionId);
       }
@@ -56,10 +56,10 @@ export default function App() {
     }
   }, [selectedSessionId]);
 
+  // Initial fetch and 6s polling for live activity
   useEffect(() => {
     loadInitialData();
 
-    // Auto-poll every 6 seconds so incoming live events appear automatically
     const interval = setInterval(() => {
       loadInitialData(true);
     }, 6000);
@@ -67,7 +67,7 @@ export default function App() {
     return () => clearInterval(interval);
   }, [loadInitialData]);
 
-  // Load events when selectedSessionId changes
+  // Load events when a session is selected
   useEffect(() => {
     if (!selectedSessionId) {
       setSessionEvents([]);
@@ -94,7 +94,7 @@ export default function App() {
     return () => { isMounted = false; };
   }, [selectedSessionId]);
 
-  // Handle seed demo data action
+  // Seed sample data action
   const handleSeedDemo = async () => {
     setIsSeeding(true);
     try {
@@ -115,25 +115,27 @@ export default function App() {
         <div
           style={{
             position: 'fixed',
-            top: '76px',
-            right: '24px',
+            top: '80px',
+            right: '28px',
             zIndex: 9999,
-            background: 'linear-gradient(135deg, #1e293b, #0f172a)',
-            border: '1px solid var(--accent-primary)',
-            color: '#fff',
-            padding: '12px 20px',
-            borderRadius: '10px',
-            boxShadow: '0 10px 25px rgba(0,0,0,0.5), 0 0 15px var(--accent-glow)',
-            fontSize: '13px',
+            background: '#ffffff',
+            border: '1px solid #bfdbfe',
+            color: 'var(--text-primary)',
+            padding: '12px 22px',
+            borderRadius: '9999px',
+            boxShadow: '0 10px 25px rgba(37, 99, 235, 0.15)',
+            fontSize: '13.5px',
             fontWeight: 600,
-            animation: 'fadeIn 0.2s ease'
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
           }}
         >
           {toastMessage}
         </div>
       )}
 
-      {/* Main Top Navigation */}
+      {/* Floating Pill Navigation Bar */}
       <Navbar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -144,47 +146,59 @@ export default function App() {
         isSeeding={isSeeding}
       />
 
-      {/* Main Dashboard Content */}
-      <main className="dashboard-container" style={{ flexGrow: 1 }}>
-        {/* Top-Level Metrics Overview */}
-        <OverviewMetrics sessions={sessions} />
-
-        {/* Tab 1: Sessions & User Journeys */}
+      {/* Main Page Content */}
+      <main className="page-container" style={{ flexGrow: 1 }}>
+        {/* VIEW 1: Sessions & Visitor Journeys */}
         {activeTab === 'sessions' && (
-          <div className="sessions-layout">
-            <SessionsView
-              sessions={sessions}
-              selectedSessionId={selectedSessionId}
-              onSelectSession={(id) => setSelectedSessionId(id)}
-              loading={loadingSessions}
-            />
+          <div>
+            {/* Page Heading & Subtitle */}
+            <div className="section-hero">
+              <h1>User <span className="brand-accent">Analytics</span></h1>
+              <p>Understand how visitors interact with your website.</p>
+            </div>
 
-            <UserJourney
-              sessionId={selectedSessionId}
-              events={sessionEvents}
-              loading={loadingEvents}
-              error={eventsError}
-            />
+            {/* 4 Compact Metric Cards */}
+            <OverviewMetrics sessions={sessions} />
+
+            {/* Two Main Panels */}
+            <div className="dual-panel-layout">
+              {/* Left Panel: Recorded Sessions */}
+              <SessionsView
+                sessions={sessions}
+                selectedSessionId={selectedSessionId}
+                onSelectSession={(id) => setSelectedSessionId(id)}
+                loading={loadingSessions}
+              />
+
+              {/* Right Panel: Visitor Journey */}
+              <UserJourney
+                sessionId={selectedSessionId}
+                events={sessionEvents}
+                loading={loadingEvents}
+                error={eventsError}
+              />
+            </div>
           </div>
         )}
 
-        {/* Tab 2: Click Heatmap Explorer */}
+        {/* VIEW 2: Click Heatmap Explorer */}
         {activeTab === 'heatmap' && (
           <HeatmapView />
         )}
       </main>
 
-      {/* Minimal Footer */}
+      {/* Clean Footer */}
       <footer
         style={{
-          padding: '18px 28px',
+          padding: '24px 28px',
           textAlign: 'center',
-          borderTop: '1px solid var(--border-subtle)',
-          fontSize: '12px',
-          color: 'var(--text-muted)'
+          borderTop: '1px solid var(--border-card)',
+          fontSize: '12.5px',
+          color: 'var(--text-muted)',
+          background: 'rgba(255, 255, 255, 0.6)'
         }}
       >
-        <span>CausalFunnel Analytics Engine • Full-Stack Assignment • Built with Node.js, Express, MongoDB & React</span>
+        <span>CausalFunnel Analytics Platform • Real-Time User Behavior Engine • Node.js, MongoDB & React</span>
       </footer>
     </div>
   );

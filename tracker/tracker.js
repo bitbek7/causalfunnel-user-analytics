@@ -145,16 +145,30 @@
           ? event.pageY
           : event.clientY + (document.documentElement.scrollTop || document.body.scrollTop);
 
-      // Intelligent Fallback: If clicked via keyboard (Enter/Space) or programmatic click where coordinates are (0,0),
-      // determine coordinate from element bounding rectangle center
       const target = event.target || {};
-      if (pageX === 0 && pageY === 0 && typeof target.getBoundingClientRect === 'function') {
+
+      // Robust Coordinate Resolution:
+      // In synthetic clicks (e.g. element.click()) or keyboard activation (Enter/Space on focused buttons),
+      // browser MouseEvents often arrive with pageX = 0, pageY = 0 or clientX = 0.
+      // If the target element has non-zero bounding box coordinates, resolve the exact center of the clicked element!
+      if (typeof target.getBoundingClientRect === 'function') {
         const rect = target.getBoundingClientRect();
         if (rect.width > 0 || rect.height > 0) {
-          const scrollX = document.documentElement.scrollLeft || document.body.scrollLeft || 0;
-          const scrollY = document.documentElement.scrollTop || document.body.scrollTop || 0;
-          pageX = Math.round(rect.left + scrollX + rect.width / 2);
-          pageY = Math.round(rect.top + scrollY + rect.height / 2);
+          const scrollX = window.scrollX || window.pageXOffset || document.documentElement.scrollLeft || 0;
+          const scrollY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0;
+
+          // If coordinates are 0 while element is positioned elsewhere on screen, use element center
+          if (pageX === 0 && rect.left > 0) {
+            pageX = Math.round(rect.left + scrollX + rect.width / 2);
+          }
+          if (pageY === 0 && rect.top > 0) {
+            pageY = Math.round(rect.top + scrollY + rect.height / 2);
+          }
+          // If both coordinates were 0 (top-left fallback), resolve fully to element center
+          if (pageX === 0 && pageY === 0) {
+            pageX = Math.round(rect.left + scrollX + rect.width / 2);
+            pageY = Math.round(rect.top + scrollY + rect.height / 2);
+          }
         }
       }
 

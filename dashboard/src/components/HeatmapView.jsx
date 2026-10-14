@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { fetchHeatmap, fetchTrackedPages } from '../services/api';
 
 export default function HeatmapView() {
@@ -7,28 +7,28 @@ export default function HeatmapView() {
   const [heatmapData, setHeatmapData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [visualMode, setVisualMode] = useState('density'); // 'density' or 'dots'
+
+  // Visual modes: Default is 'points' (Point-Marker visualization)
+  const [visualMode, setVisualMode] = useState('points'); // 'points' | 'density'
   const [showGrid, setShowGrid] = useState(true);
-  const [dotRadius, setDotRadius] = useState(25);
-  const [hoveredPoint, setHoveredPoint] = useState(null);
+  const [dotRadius, setDotRadius] = useState(24);
+  const [hoveredCluster, setHoveredCluster] = useState(null);
 
   const canvasRef = useRef(null);
 
-  // Load available pages on mount
+  // Load tracked page URLs on mount
   useEffect(() => {
     async function loadPages() {
       try {
         const res = await fetchTrackedPages();
         if (res.success && res.data.length > 0) {
           setPages(res.data);
-          // Default to the page with the most clicks
           const sorted = [...res.data].sort((a, b) => b.clicks - a.clicks);
           setSelectedPage(sorted[0].pageUrl);
         } else {
-          // Fallback defaults
           const fallbackPages = [
-            { pageUrl: '/demo/index.html', clicks: 0, totalEvents: 0 },
-            { pageUrl: '/demo/product.html', clicks: 0, totalEvents: 0 }
+            { pageUrl: '/demo/index.html', clicks: 0 },
+            { pageUrl: '/demo/product.html', clicks: 0 }
           ];
           setPages(fallbackPages);
           setSelectedPage(fallbackPages[0].pageUrl);
@@ -40,7 +40,7 @@ export default function HeatmapView() {
     loadPages();
   }, []);
 
-  // Fetch heatmap data when selected page changes
+  // Fetch heatmap data when page selection changes
   useEffect(() => {
     if (!selectedPage) return;
 
@@ -64,7 +64,41 @@ export default function HeatmapView() {
     return () => { isMounted = false; };
   }, [selectedPage]);
 
-  // Draw Heatmap onto Canvas
+  // Compute clusters: Group clicks sharing exact or nearby coordinates
+  // Solves the issue where multiple clicks on the exact same button appeared as 1 dot!
+  const clusters = useMemo(() => {
+    if (!heatmapData || !heatmapData.clicks || heatmapData.clicks.length === 0) {
+      return [];
+    }
+
+    const clickList = heatmapData.clicks;
+    const grouped = [];
+
+    clickList.forEach((c) => {
+      // Find existing cluster within 8px
+      const existing = grouped.find(
+        (g) => Math.hypot(g.x - c.x, g.y - c.y) <= 8
+      );
+
+      if (existing) {
+        existing.count += 1;
+        existing.items.push(c);
+      } else {
+        grouped.push({
+          x: c.x,
+          y: c.y,
+          count: 1,
+          elementTag: c.elementTag,
+          elementText: c.elementText,
+          items: [c]
+        });
+      }
+    });
+
+    return grouped;
+  }, [heatmapData]);
+
+  // Draw Heatmap / Point Markers onto Canvas
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -77,32 +111,48 @@ export default function HeatmapView() {
     // Clear background
     ctx.clearRect(0, 0, width, height);
 
-    // Dark canvas background
-    ctx.fillStyle = '#0b1120';
+    // Clean white canvas background
+    ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, width, height);
 
-    // Optional Grid Overlay
+    // 1. Draw Grid Overlay
     if (showGrid) {
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+      ctx.strokeStyle = '#f1f5f9';
       ctx.lineWidth = 1;
       const gridSize = 50;
 
-      for (let x = 0; x < width; x += gridSize) {
+      for (let x = 0; x <= width; x += gridSize) {
         ctx.beginPath();
         ctx.moveTo(x, 0);
         ctx.lineTo(x, height);
         ctx.stroke();
       }
-      for (let y = 0; y < height; y += gridSize) {
+      for (let y = 0; y <= height; y += gridSize) {
         ctx.beginPath();
         ctx.moveTo(0, y);
         ctx.lineTo(width, y);
         ctx.stroke();
       }
 
-      // Axis labels
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
-      ctx.font = '10px monospace';
+      // Major coordinate grid markings
+      ctx.strokeStyle = '#e2e8f0';
+      ctx.lineWidth = 1.5;
+      for (let x = 200; x <= width; x += 200) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, height);
+        ctx.stroke();
+      }
+      for (let y = 200; y <= height; y += 200) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+        ctx.stroke();
+      }
+
+      // Coordinate numbers
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '10px JetBrains Mono, monospace';
       for (let x = 100; x < width; x += 100) {
         ctx.fillText(`${x}px`, x + 4, 14);
       }
@@ -111,28 +161,78 @@ export default function HeatmapView() {
       }
     }
 
+    // Empty state watermark
     if (!heatmapData || !heatmapData.clicks || heatmapData.clicks.length === 0) {
-      // Empty watermark
-      ctx.fillStyle = 'rgba(148, 163, 184, 0.4)';
-      ctx.font = '14px sans-serif';
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '15px Inter, sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText('No click events recorded for this URL yet', width / 2, height / 2);
+      ctx.textAlign = 'start';
       return;
     }
 
-    const clicks = heatmapData.clicks;
+    // 2. Primary Visualization: Point Markers Mode
+    if (visualMode === 'points') {
+      clusters.forEach((cl) => {
+        const x = Math.min(Math.max(cl.x, 10), width - 10);
+        const y = Math.min(Math.max(cl.y, 10), height - 10);
 
-    // Render Mode 1: Smooth Density Radial Gradients
+        // Marker size scaled slightly by cluster frequency
+        const markerRadius = cl.count > 1 ? 9 : 7;
+
+        // Outer glow halo
+        ctx.fillStyle = cl.count > 1 ? 'rgba(239, 68, 68, 0.22)' : 'rgba(37, 99, 235, 0.2)';
+        ctx.beginPath();
+        ctx.arc(x, y, markerRadius + 10, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Secondary ring
+        ctx.fillStyle = cl.count > 1 ? 'rgba(239, 68, 68, 0.45)' : 'rgba(37, 99, 235, 0.45)';
+        ctx.beginPath();
+        ctx.arc(x, y, markerRadius + 4, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Solid Core Marker
+        ctx.fillStyle = cl.count > 1 ? '#ef4444' : '#2563eb';
+        ctx.beginPath();
+        ctx.arc(x, y, markerRadius, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Crisp White Bullseye Center
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(x, y, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Cluster count badge if multiple clicks landed on this location
+        if (cl.count > 1) {
+          ctx.fillStyle = '#1e293b';
+          ctx.font = 'bold 11px Inter, sans-serif';
+          const label = `${cl.count}x`;
+          const textWidth = ctx.measureText(label).width;
+
+          // Badge pill background
+          ctx.fillStyle = '#ef4444';
+          ctx.beginPath();
+          ctx.roundRect(x - textWidth / 2 - 5, y - 24, textWidth + 10, 16, 8);
+          ctx.fill();
+
+          ctx.fillStyle = '#ffffff';
+          ctx.fillText(label, x - textWidth / 2, y - 12);
+        }
+      });
+    }
+
+    // 3. Optional Density Heatmap Mode
     if (visualMode === 'density') {
-      clicks.forEach((c) => {
-        // Normalize coordinates if necessary to fit within canvas bounds
-        const x = Math.min(Math.max(c.x, 0), width);
-        const y = Math.min(Math.max(c.y, 0), height);
+      heatmapData.clicks.forEach((c) => {
+        const x = Math.min(Math.max(c.x, 5), width - 5);
+        const y = Math.min(Math.max(c.y, 5), height - 5);
 
         const radGrad = ctx.createRadialGradient(x, y, 0, x, y, dotRadius);
-        radGrad.addColorStop(0, 'rgba(239, 68, 68, 0.85)');   // Hot red center
-        radGrad.addColorStop(0.3, 'rgba(245, 158, 11, 0.6)'); // Amber halo
-        radGrad.addColorStop(0.7, 'rgba(59, 130, 246, 0.2)'); // Cool blue outer
+        radGrad.addColorStop(0, 'rgba(239, 68, 68, 0.85)');    // Red core
+        radGrad.addColorStop(0.3, 'rgba(245, 158, 11, 0.65)'); // Amber mid
+        radGrad.addColorStop(0.7, 'rgba(59, 130, 246, 0.25)'); // Blue outer
         radGrad.addColorStop(1, 'rgba(59, 130, 246, 0)');
 
         ctx.fillStyle = radGrad;
@@ -142,82 +242,84 @@ export default function HeatmapView() {
       });
     }
 
-    // Render Mode 2: Clean High-Precision Scatter Dots with Halos
-    if (visualMode === 'dots') {
-      clicks.forEach((c, i) => {
-        const x = Math.min(Math.max(c.x, 0), width);
-        const y = Math.min(Math.max(c.y, 0), height);
+    // 4. Highlight hovered point or cluster
+    if (hoveredCluster) {
+      const hx = Math.min(Math.max(hoveredCluster.x, 10), width - 10);
+      const hy = Math.min(Math.max(hoveredCluster.y, 10), height - 10);
 
-        // Outer glow
-        ctx.fillStyle = 'rgba(245, 158, 11, 0.25)';
-        ctx.beginPath();
-        ctx.arc(x, y, 14, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Core marker
-        ctx.fillStyle = '#f59e0b';
-        ctx.beginPath();
-        ctx.arc(x, y, 5, 0, Math.PI * 2);
-        ctx.fill();
-
-        // White center point
-        ctx.fillStyle = '#ffffff';
-        ctx.beginPath();
-        ctx.arc(x, y, 2, 0, Math.PI * 2);
-        ctx.fill();
-      });
-    }
-
-    // Highlight hovered point if active
-    if (hoveredPoint) {
-      ctx.strokeStyle = '#38bdf8';
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#0284c7';
+      ctx.lineWidth = 2.5;
       ctx.beginPath();
-      ctx.arc(hoveredPoint.x, hoveredPoint.y, 18, 0, Math.PI * 2);
+      ctx.arc(hx, hy, 22, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Crosshairs
+      ctx.strokeStyle = 'rgba(2, 132, 199, 0.6)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(hx - 28, hy);
+      ctx.lineTo(hx + 28, hy);
+      ctx.moveTo(hx, hy - 28);
+      ctx.lineTo(hx, hy + 28);
       ctx.stroke();
     }
-  }, [heatmapData, visualMode, showGrid, dotRadius, hoveredPoint]);
+  }, [heatmapData, clusters, visualMode, showGrid, dotRadius, hoveredCluster]);
 
   // Handle canvas mouse move for interactive inspection
   const handleCanvasMouseMove = (e) => {
-    if (!heatmapData || !heatmapData.clicks || heatmapData.clicks.length === 0) return;
+    if (!clusters || clusters.length === 0) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
     const mouseX = e.clientX - rect.left;
     const mouseY = e.clientY - rect.top;
 
-    // Find closest click point within 25px threshold
     let closest = null;
-    let minDist = 30;
+    let minDist = 28;
 
-    heatmapData.clicks.forEach((pt) => {
-      const dist = Math.hypot(pt.x - mouseX, pt.y - mouseY);
+    clusters.forEach((cl) => {
+      const dist = Math.hypot(cl.x - mouseX, cl.y - mouseY);
       if (dist < minDist) {
         minDist = dist;
-        closest = pt;
+        closest = cl;
       }
     });
 
-    setHoveredPoint(closest);
+    setHoveredCluster(closest);
   };
 
   const handleCanvasMouseLeave = () => {
-    setHoveredPoint(null);
+    setHoveredCluster(null);
   };
 
   return (
-    <div className="heatmap-layout">
-      {/* Top Configuration & Control Bar */}
-      <div className="glass-panel heatmap-controls">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+    <div className="heatmap-container-box">
+      {/* Page Heading & Subtitle */}
+      <div className="section-hero" style={{ margin: '10px 0 24px' }}>
+        <h1>Click <span className="brand-accent">Heatmap</span></h1>
+        <p>Visualize visitor click positions and behavioral concentration across pages.</p>
+      </div>
+
+      {/* Control Bar Card */}
+      <div className="heatmap-controls-card">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
           <div>
-            <label htmlFor="select-page-url" style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px', textTransform: 'uppercase', fontWeight: 600 }}>
+            <label
+              htmlFor="select-page-url"
+              style={{
+                fontSize: '11px',
+                color: 'var(--text-muted)',
+                display: 'block',
+                marginBottom: '4px',
+                textTransform: 'uppercase',
+                fontWeight: 700
+              }}
+            >
               Select Page URL
             </label>
             <select
               id="select-page-url"
-              className="page-select"
+              className="select-page-dropdown"
               value={selectedPage}
               onChange={(e) => setSelectedPage(e.target.value)}
             >
@@ -229,28 +331,36 @@ export default function HeatmapView() {
             </select>
           </div>
 
+          {/* Mode Switcher Buttons */}
           <div style={{ display: 'flex', gap: '8px', alignSelf: 'flex-end' }}>
             <button
-              id="btn-mode-density"
-              className={`btn ${visualMode === 'density' ? 'btn-primary' : 'btn-secondary'}`}
-              onClick={() => setVisualMode('density')}
-              style={{ fontSize: '12px', padding: '6px 14px' }}
-            >
-              🔥 Density Map
-            </button>
-            <button
               id="btn-mode-dots"
-              className={`btn ${visualMode === 'dots' ? 'btn-primary' : 'btn-secondary'}`}
-              onClick={() => setVisualMode('dots')}
-              style={{ fontSize: '12px', padding: '6px 14px' }}
+              className={`btn-cf-primary ${visualMode === 'points' ? '' : 'btn-cf-secondary'}`}
+              onClick={() => setVisualMode('points')}
+              style={{
+                background: visualMode === 'points' ? 'var(--cf-blue)' : '#ffffff',
+                color: visualMode === 'points' ? '#ffffff' : 'var(--text-primary)'
+              }}
             >
               🎯 Point Markers
+            </button>
+            <button
+              id="btn-mode-density"
+              className={`btn-cf-primary ${visualMode === 'density' ? '' : 'btn-cf-secondary'}`}
+              onClick={() => setVisualMode('density')}
+              style={{
+                background: visualMode === 'density' ? 'var(--cf-blue)' : '#ffffff',
+                color: visualMode === 'density' ? '#ffffff' : 'var(--text-primary)'
+              }}
+            >
+              🔥 Density Map
             </button>
           </div>
         </div>
 
+        {/* Right Side Options & Stats */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
-          <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+          <label style={{ fontSize: '13px', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontWeight: 500 }}>
             <input
               type="checkbox"
               id="checkbox-show-grid"
@@ -272,59 +382,72 @@ export default function HeatmapView() {
                 onChange={(e) => setDotRadius(Number(e.target.value))}
                 style={{ width: '90px' }}
               />
-              <span style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', color: 'var(--cyan)' }}>{dotRadius}px</span>
+              <span style={{ fontSize: '12px', fontFamily: 'var(--font-mono)', color: 'var(--cf-blue)', fontWeight: 700 }}>
+                {dotRadius}px
+              </span>
             </div>
           )}
 
-          <div className="counter-badge" id="badge-total-page-clicks" style={{ fontSize: '12px', padding: '5px 12px' }}>
-            {heatmapData ? `${heatmapData.totalClicks} clicks recorded` : 'Loading...'}
+          {/* Recorded Clicks Count Badge */}
+          <div className="badge-event-count" id="badge-total-page-clicks" style={{ fontSize: '13px', padding: '6px 14px' }}>
+            {heatmapData ? `${heatmapData.totalClicks} recorded clicks` : 'Loading...'}
           </div>
         </div>
       </div>
 
-      {/* Canvas Visualizer Card */}
-      <div className="glass-panel" style={{ padding: '20px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+      {/* Main Canvas Frame */}
+      <div className="canvas-card-frame">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
           <div>
-            <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#fff' }}>
-              Page Interaction Canvas: <span style={{ color: 'var(--cyan)', fontFamily: 'var(--font-mono)' }}>{selectedPage}</span>
+            <h3 style={{ fontSize: '17px', fontWeight: 800, color: 'var(--text-primary)' }}>
+              Interaction Canvas: <span style={{ color: 'var(--cf-blue)', fontFamily: 'var(--font-mono)' }}>{selectedPage}</span>
             </h3>
-            <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-              Visualizing registered user click coordinates. Hover near any dot to inspect exact (x, y) coordinates.
+            <p style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>
+              Hover over any point marker to inspect exact document coordinates, target DOM tag, and frequency.
             </p>
           </div>
 
-          {hoveredPoint && (
+          {/* Live Hover Tooltip */}
+          {hoveredCluster && (
             <div
               style={{
-                background: 'rgba(15, 23, 42, 0.95)',
-                border: '1px solid var(--border-focus)',
-                borderRadius: '8px',
-                padding: '6px 14px',
+                background: '#ffffff',
+                border: '1px solid #bfdbfe',
+                borderRadius: '10px',
+                padding: '8px 16px',
                 fontSize: '12px',
-                color: '#fff',
+                color: 'var(--text-primary)',
                 fontFamily: 'var(--font-mono)',
                 display: 'flex',
+                alignItems: 'center',
                 gap: '12px',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.5)'
+                boxShadow: '0 4px 14px rgba(37, 99, 235, 0.15)'
               }}
             >
-              <span style={{ color: 'var(--amber)' }}>🎯 x: {hoveredPoint.x}, y: {hoveredPoint.y}</span>
-              {hoveredPoint.elementTag && (
-                <span style={{ color: 'var(--cyan)' }}>&lt;{hoveredPoint.elementTag}&gt;</span>
+              <span style={{ color: '#b45309', fontWeight: 700 }}>
+                🎯 (x: {hoveredCluster.x}, y: {hoveredCluster.y})
+              </span>
+              <span style={{ color: 'var(--cf-blue)', fontWeight: 700 }}>
+                {hoveredCluster.count} {hoveredCluster.count === 1 ? 'click' : 'clicks here'}
+              </span>
+              {hoveredCluster.elementTag && (
+                <span style={{ color: 'var(--text-muted)' }}>
+                  &lt;{hoveredCluster.elementTag}&gt; {hoveredCluster.elementText ? `"${hoveredCluster.elementText}"` : ''}
+                </span>
               )}
             </div>
           )}
         </div>
 
-        <div className="heatmap-canvas-container">
-          <div className="heatmap-canvas-box">
+        {/* Canvas Display Area */}
+        <div className="canvas-viewport-wrapper">
+          <div className="canvas-element-box">
             <canvas
               id="heatmap-canvas"
               ref={canvasRef}
-              width={1000}
-              height={600}
-              className="heatmap-canvas"
+              width={1050}
+              height={620}
+              className="canvas-element"
               onMouseMove={handleCanvasMouseMove}
               onMouseLeave={handleCanvasMouseLeave}
             />
@@ -332,26 +455,28 @@ export default function HeatmapView() {
         </div>
       </div>
 
-      {/* Raw Coordinates Table (Shows complete data transparency) */}
+      {/* Click Coordinate Registry Table (Full data transparency) */}
       {heatmapData && heatmapData.clicks && heatmapData.clicks.length > 0 && (
-        <div className="glass-panel" style={{ overflow: 'hidden' }}>
-          <div className="panel-header">
-            <div className="panel-title">
+        <div className="card-panel">
+          <div className="card-header-bar">
+            <div className="card-header-title">
               <span>📊</span>
               <span>Click Coordinate Registry</span>
-              <span className="counter-badge">{heatmapData.clicks.length} points</span>
+              <span className="badge-event-count">
+                {heatmapData.clicks.length} points
+              </span>
             </div>
           </div>
 
-          <div className="table-container" style={{ maxHeight: '280px' }}>
-            <table className="analytics-table">
+          <div className="sessions-table-wrapper" style={{ maxHeight: '280px' }}>
+            <table className="clean-table">
               <thead>
                 <tr>
                   <th>#</th>
                   <th>X Coordinate</th>
                   <th>Y Coordinate</th>
-                  <th>Element Tag</th>
-                  <th>Element Text Preview</th>
+                  <th>Target Element</th>
+                  <th>Text Snippet</th>
                   <th>Timestamp</th>
                   <th>Session ID</th>
                 </tr>
@@ -360,21 +485,23 @@ export default function HeatmapView() {
                 {heatmapData.clicks.map((click, i) => (
                   <tr
                     key={click._id || i}
-                    onMouseEnter={() => setHoveredPoint(click)}
-                    onMouseLeave={() => setHoveredPoint(null)}
+                    onMouseEnter={() => setHoveredCluster({ x: click.x, y: click.y, count: 1, elementTag: click.elementTag, elementText: click.elementText })}
+                    onMouseLeave={() => setHoveredCluster(null)}
                     style={{
-                      background: hoveredPoint === click ? 'rgba(99, 102, 241, 0.2)' : 'transparent'
+                      background: hoveredCluster && hoveredCluster.x === click.x && hoveredCluster.y === click.y
+                        ? '#eff6ff'
+                        : 'transparent'
                     }}
                   >
-                    <td>{i + 1}</td>
-                    <td style={{ color: 'var(--amber)', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
+                    <td style={{ fontWeight: 700, color: 'var(--text-muted)' }}>{i + 1}</td>
+                    <td style={{ color: '#b45309', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
                       {click.x} px
                     </td>
-                    <td style={{ color: 'var(--amber)', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
+                    <td style={{ color: '#b45309', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
                       {click.y} px
                     </td>
                     <td>
-                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--cyan)' }}>
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: '11.5px', color: 'var(--cf-blue)', fontWeight: 600 }}>
                         &lt;{click.elementTag || 'UNKNOWN'}&gt;
                       </span>
                     </td>

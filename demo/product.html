@@ -193,7 +193,27 @@
         btn.style.color = '#f43f5e';
         btn.style.borderColor = '#f43f5e';
       }
+
+      // Automatically track product view event
+      if (window.CausalTracker && typeof window.CausalTracker.trackProductView === 'function') {
+        window.CausalTracker.trackProductView({
+          productId: 'prod_aura_pro',
+          productName: 'Aura Pro Studio',
+          productCategory: 'Studio Headphones'
+        });
+      } else {
+        setTimeout(function() {
+          if (window.CausalTracker && typeof window.CausalTracker.trackProductView === 'function') {
+            window.CausalTracker.trackProductView({
+              productId: 'prod_aura_pro',
+              productName: 'Aura Pro Studio',
+              productCategory: 'Studio Headphones'
+            });
+          }
+        }, 300);
+      }
     });
+
 
     let eventTally = 0;
     window.addEventListener('cf_event_tracked', function(e) {

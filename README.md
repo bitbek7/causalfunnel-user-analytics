@@ -178,24 +178,42 @@ The React dashboard will be live at: **`http://localhost:5173/`**
   }
   ```
 
-### 2. Product Rankings
-- **Endpoint**: `GET /api/products/rankings`
+### 2. Product Analytics & Rankings
+- **Endpoint**: `GET /api/products/rankings` (aliases: `/api/products/funnel`, `/api/products/analytics`)
 - **Response (`200 OK`)**:
   ```json
   {
     "success": true,
-    "timestamp": "2026-10-14T17:20:00.000Z",
+    "timestamp": "2026-10-14T17:46:21.000Z",
     "rankings": {
       "mostClicked": [
-        { "rank": 1, "productId": "prod_aura_pro", "productName": "Aura Pro Studio", "count": 4 }
+        { "rank": 1, "productId": "prod_aura_pro", "productName": "Aura Pro Studio", "count": 9 }
       ],
       "mostAddedToCart": [
-        { "rank": 1, "productId": "prod_aura_pro", "productName": "Aura Pro Studio", "count": 3 }
+        { "rank": 1, "productId": "prod_aura_pro", "productName": "Aura Pro Studio", "count": 7 }
       ],
       "mostFavorited": [
-        { "rank": 1, "productId": "prod_aura_pro", "productName": "Aura Pro Studio", "count": 1 }
+        { "rank": 1, "productId": "prod_aura_pro", "productName": "Aura Pro Studio", "count": 2 }
       ]
-    }
+    },
+    "funnel": {
+      "productViewSessions": 2,
+      "addToCartSessions": 2,
+      "conversionRate": 100.0,
+      "conversionRateFormatted": "100%"
+    },
+    "comparison": [
+      {
+        "rank": 1,
+        "productId": "prod_aura_pro",
+        "productName": "Aura Pro Studio",
+        "productCategory": "Studio Headphones",
+        "clicks": 9,
+        "addToCart": 7,
+        "favorites": 2,
+        "totalInteractions": 18
+      }
+    ]
   }
   ```
 
@@ -215,7 +233,7 @@ The React dashboard will be live at: **`http://localhost:5173/`**
 
 ## 🧪 Automated Backend Verification Suite
 
-Run the 100% automated test suite verifying all 10 API requirements:
+Run the 100% automated test suite verifying all 12 API requirements:
 
 ```bash
 cd backend
@@ -235,9 +253,12 @@ node test-api.js
 [PASS] 8. POST /api/events (add_to_cart) -> status: 201, product: prod_aura_pro
 [PASS] 9. POST /api/events (product_favorite) -> status: 201
 [PASS] 10. GET /api/products/rankings -> status: 200, returned rankings categories
+[PASS] 11. Product Conversion Funnel -> View Sessions: 1, Cart Sessions: 1, Rate: 100%
+[PASS] 12. Product Engagement Comparison -> 4 products tracked, comparison dataset populated
 
-🎉 ALL 10 MANDATORY BACKEND API VERIFICATIONS PASSED 100%!
+🎉 ALL 12 MANDATORY BACKEND API & ANALYTICS VERIFICATIONS PASSED 100%!
 ```
+
 
 ---
 

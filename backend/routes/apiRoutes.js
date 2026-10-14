@@ -22,7 +22,10 @@ router.get('/heatmap', getHeatmapData);
 // 5. Tracked page URLs helper
 router.get('/pages', getTrackedPages);
 
-// 6. Product interaction rankings (clicks, cart additions, favorites)
+// 6. Product interaction analytics & rankings (rankings, conversion funnel, comparison)
 router.get('/products/rankings', getProductRankings);
+router.get('/products/funnel', getProductRankings);
+router.get('/products/analytics', getProductRankings);
 
 module.exports = router;
+

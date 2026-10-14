@@ -18,10 +18,10 @@ export default function App() {
   const [selectedSessionId, setSelectedSessionId] = useState(null);
   const [sessionEvents, setSessionEvents] = useState([]);
 
-  const [productRankings, setProductRankings] = useState({
-    mostClicked: [],
-    mostAddedToCart: [],
-    mostFavorited: []
+  const [productData, setProductData] = useState({
+    rankings: { mostClicked: [], mostAddedToCart: [], mostFavorited: [] },
+    funnel: { productViewSessions: 0, addToCartSessions: 0, conversionRate: null, conversionRateFormatted: 'N/A' },
+    comparison: []
   });
 
   const [loadingSessions, setLoadingSessions] = useState(true);
@@ -34,7 +34,7 @@ export default function App() {
   const [isLive, setIsLive] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Load real telemetry sessions, product rankings & backend health
+  // Load real telemetry sessions, product analytics & backend health
   const loadInitialData = useCallback(async (silent = false) => {
     if (!silent) {
       setLoadingSessions(true);
@@ -43,10 +43,16 @@ export default function App() {
     setIsRefreshing(true);
 
     try {
-      const [healthRes, sessionsRes, rankingsRes] = await Promise.all([
+      const [healthRes, sessionsRes, productRes] = await Promise.all([
         fetchHealth().catch(() => ({ status: 'down' })),
         fetchSessions().catch(() => ({ data: [] })),
-        fetchProductRankings().catch((err) => ({ rankings: { mostClicked: [], mostAddedToCart: [], mostFavorited: [] }, error: err.message }))
+        fetchProductRankings().catch((err) => ({
+          success: false,
+          rankings: { mostClicked: [], mostAddedToCart: [], mostFavorited: [] },
+          funnel: { productViewSessions: 0, addToCartSessions: 0, conversionRate: null, conversionRateFormatted: 'N/A' },
+          comparison: [],
+          error: err.message
+        }))
       ]);
 
       setIsLive(healthRes.status === 'healthy');
@@ -54,12 +60,13 @@ export default function App() {
       const fetchedSessions = sessionsRes.data || [];
       setSessions(fetchedSessions);
 
-      if (rankingsRes.rankings) {
-        setProductRankings(rankingsRes.rankings);
+      if (productRes.rankings || productRes.funnel) {
+        setProductData(productRes);
         setRankingsError(null);
-      } else if (rankingsRes.error) {
-        setRankingsError(rankingsRes.error);
+      } else if (productRes.error) {
+        setRankingsError(productRes.error);
       }
+
 
       // Auto-select first session if none is selected
       if (fetchedSessions.length > 0 && !selectedSessionId) {
@@ -159,7 +166,7 @@ export default function App() {
 
             {/* Product Interaction Rankings Section */}
             <ProductRankings
-              rankings={productRankings}
+              productData={productData}
               loading={loadingRankings}
               error={rankingsError}
               onRefresh={() => loadInitialData(false)}
@@ -176,13 +183,14 @@ export default function App() {
             </div>
 
             <ProductRankings
-              rankings={productRankings}
+              productData={productData}
               loading={loadingRankings}
               error={rankingsError}
               onRefresh={() => loadInitialData(false)}
             />
           </div>
         )}
+
 
         {/* VIEW 3: Click Heatmap Explorer */}
         {activeTab === 'heatmap' && (

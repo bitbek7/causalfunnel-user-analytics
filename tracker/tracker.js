@@ -299,6 +299,24 @@
     dispatchEvent(payload);
   }
 
+  function trackProductView(productData) {
+    if (!productData || !productData.productId) return;
+
+    const payload = {
+      sessionId: sessionId,
+      eventType: 'product_view',
+      pageUrl: window.location.pathname || '/',
+      pageTitle: document.title,
+      timestamp: new Date().toISOString(),
+      productId: String(productData.productId),
+      productName: String(productData.productName || productData.productId),
+      productCategory: productData.productCategory || undefined,
+      source: 'demo_store'
+    };
+
+    dispatchEvent(payload);
+  }
+
   /**
    * Initialize Tracker
    */
@@ -315,14 +333,16 @@
 
     // Expose Global Public API onto window
     window.CausalTracker = {
-      version: '1.1.0',
+      version: '1.2.0',
       getSessionId: () => sessionId,
       getEndpoint: () => API_ENDPOINT,
       trackPageView,
+      trackProductView,
       trackAddToCart,
       trackFavorite,
       trackUnfavorite
     };
+
 
     console.log(`[CausalFunnel Tracker] Initialized for session: ${sessionId} -> ${API_ENDPOINT}`);
   }

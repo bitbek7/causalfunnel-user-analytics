@@ -123,10 +123,28 @@ async function runTests() {
     Array.isArray(rankData.rankings?.mostFavorited);
   console.log(`[${t10Passed ? 'PASS' : 'FAIL'}] 10. GET /api/products/rankings -> status: ${rankRes.status}, returned rankings categories`);
 
-  const allPassed = t1Passed && t2Passed && t3Passed && t4Passed && t5Passed && t6Passed && t7Passed && t8Passed && t9Passed && t10Passed;
+  // Test 11: Product Conversion Funnel
+  const funnel = rankData.funnel;
+  const t11Passed = funnel &&
+    typeof funnel.productViewSessions === 'number' &&
+    typeof funnel.addToCartSessions === 'number' &&
+    funnel.productViewSessions >= 1 &&
+    funnel.addToCartSessions >= 1 &&
+    funnel.conversionRate !== null &&
+    typeof funnel.conversionRateFormatted === 'string';
+  console.log(`[${t11Passed ? 'PASS' : 'FAIL'}] 11. Product Conversion Funnel -> View Sessions: ${funnel?.productViewSessions}, Cart Sessions: ${funnel?.addToCartSessions}, Rate: ${funnel?.conversionRateFormatted}`);
+
+  // Test 12: Product Engagement Comparison for Charts & CSV
+  const comparison = rankData.comparison;
+  const t12Passed = Array.isArray(comparison) &&
+    comparison.length > 0 &&
+    comparison.some(p => p.productId === 'prod_aura_pro' && p.addToCart >= 1);
+  console.log(`[${t12Passed ? 'PASS' : 'FAIL'}] 12. Product Engagement Comparison -> ${comparison?.length} products tracked, comparison dataset populated`);
+
+  const allPassed = t1Passed && t2Passed && t3Passed && t4Passed && t5Passed && t6Passed && t7Passed && t8Passed && t9Passed && t10Passed && t11Passed && t12Passed;
 
   if (allPassed) {
-    console.log('\n🎉 ALL 10 MANDATORY BACKEND API VERIFICATIONS PASSED 100%!');
+    console.log('\n🎉 ALL 12 MANDATORY BACKEND API & ANALYTICS VERIFICATIONS PASSED 100%!');
   } else {
     console.error('\n❌ SOME TESTS FAILED');
     process.exit(1);

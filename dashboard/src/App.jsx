@@ -139,13 +139,13 @@ export default function App() {
             {/* Page Heading & Subtitle */}
             <div className="section-hero">
               <h1>User <span className="brand-accent">Analytics</span></h1>
-              <p>Understand how visitors interact with your website.</p>
+              <p>Understand how individual visitors browse and interact with your website.</p>
             </div>
 
             {/* 4 Compact Metric Cards */}
             <OverviewMetrics sessions={sessions} />
 
-            {/* Two Main Panels */}
+            {/* Two Main Panels: Left (Recorded Sessions) & Right (Visitor Journey Timeline) */}
             <div className="dual-panel-layout">
               {/* Left Panel: Recorded Sessions */}
               <SessionsView
@@ -163,32 +163,17 @@ export default function App() {
                 error={eventsError}
               />
             </div>
-
-            {/* Product Interaction Rankings Section */}
-            <ProductRankings
-              productData={productData}
-              loading={loadingRankings}
-              error={rankingsError}
-              onRefresh={() => loadInitialData(false)}
-            />
           </div>
         )}
 
         {/* VIEW 2: Dedicated Product Analytics Tab */}
         {activeTab === 'products' && (
-          <div>
-            <div className="section-hero">
-              <h1>Product <span className="brand-accent">Analytics</span></h1>
-              <p>Track direct engagement, cart additions, and active favorites across the store.</p>
-            </div>
-
-            <ProductRankings
-              productData={productData}
-              loading={loadingRankings}
-              error={rankingsError}
-              onRefresh={() => loadInitialData(false)}
-            />
-          </div>
+          <ProductRankings
+            productData={productData}
+            loading={loadingRankings}
+            error={rankingsError}
+            onRefresh={() => loadInitialData(false)}
+          />
         )}
 
 

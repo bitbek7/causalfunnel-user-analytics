@@ -47,63 +47,111 @@ function handleExportCSV(comparisonData) {
 /**
  * 1. KPI Stats Cards (matching CausalFunnel reference screenshot top row)
  */
-function FunnelKpiCards({ funnel = {}, comparison = [] }) {
-  const totalInteractions = comparison.reduce((sum, item) => sum + (item.totalInteractions || 0), 0);
-  const conversionRateDisplay = funnel.conversionRateFormatted || 'N/A';
-  const hasRate = funnel.conversionRate !== null && funnel.conversionRate !== undefined;
+function FunnelKpiCards({ funnel = {}, comparison = [], conversionMode = 'product' }) {
+  const productViewSessions = funnel.productViewSessions || 0;
+  const addToCartSessions = funnel.addToCartSessions || 0;
+  const totalCartEvents = funnel.totalAddToCartEvents !== undefined && funnel.totalAddToCartEvents !== null
+    ? funnel.totalAddToCartEvents
+    : comparison.reduce((sum, item) => sum + (item.addToCart || 0), 0);
+
+  // Distinct products explored vs added to cart
+  const activeComparisonProducts = comparison.filter(p => (p.clicks > 0 || p.addToCart > 0 || p.favorites > 0));
+  const distinctProductsViewed = funnel.distinctProductsViewed !== undefined
+    ? funnel.distinctProductsViewed
+    : (activeComparisonProducts.length > 0 ? activeComparisonProducts.length : (productViewSessions > 0 ? 1 : 0));
+  const distinctProductsCarted = funnel.distinctProductsCarted !== undefined
+    ? funnel.distinctProductsCarted
+    : comparison.filter(p => p.addToCart > 0).length;
+
+  const productRate = distinctProductsViewed > 0
+    ? Math.round((distinctProductsCarted / distinctProductsViewed) * 1000) / 10
+    : null;
+  const productRateDisplay = funnel.productConversionRateFormatted || (productRate !== null ? `${productRate}%` : 'N/A');
+
+  const sessionRate = productViewSessions > 0
+    ? Math.round((addToCartSessions / productViewSessions) * 1000) / 10
+    : null;
+  const sessionRateDisplay = funnel.sessionConversionRateFormatted || (sessionRate !== null ? `${sessionRate}%` : 'N/A');
+
+  const isProductMode = conversionMode === 'product';
 
   return (
     <div className="funnel-kpi-grid">
-      {/* Card 1: Product View Sessions */}
+      {/* Card 1: Views */}
       <div className="metric-card-white">
         <div className="metric-icon-bubble bubble-blue">
-          <span>👥</span>
+          <span>{isProductMode ? '🛍️' : '👥'}</span>
         </div>
         <div className="metric-info">
-          <span className="metric-label">Product View Sessions</span>
-          <span className="metric-number">{funnel.productViewSessions || 0}</span>
-          <span className="metric-caption">Distinct sessions viewing products</span>
+          <span className="metric-label" title={isProductMode ? "Products Explored" : "Product View Sessions"}>
+            {isProductMode ? "Products Explored" : "Product View Sessions"}
+          </span>
+          <span className="metric-number" id="metric-view-sessions">
+            {isProductMode ? distinctProductsViewed : productViewSessions}
+          </span>
+          <span className="metric-caption" title={isProductMode ? "Distinct store products viewed" : "Distinct sessions viewing products"}>
+            {isProductMode
+              ? (distinctProductsViewed === 1 ? '1 product explored' : `${distinctProductsViewed} products explored`)
+              : (productViewSessions === 1 ? '1 visitor session' : `${productViewSessions} visitor sessions`)}
+          </span>
         </div>
       </div>
 
-      {/* Card 2: Add to Cart Sessions */}
+      {/* Card 2: Cart Additions */}
       <div className="metric-card-white">
         <div className="metric-icon-bubble bubble-amber">
           <span>🛒</span>
         </div>
         <div className="metric-info">
-          <span className="metric-label">Add to Cart Sessions</span>
-          <span className="metric-number">{funnel.addToCartSessions || 0}</span>
-          <span className="metric-caption">Distinct sessions adding to cart</span>
-        </div>
-      </div>
-
-      {/* Card 3: Add to Cart Rate (overall) */}
-      <div className="metric-card-white">
-        <div className="metric-icon-bubble bubble-cyan">
-          <span>📊</span>
-        </div>
-        <div className="metric-info">
-          <span className="metric-label">Add to Cart Rate</span>
-          <span
-            className="metric-number"
-            style={{ color: hasRate ? 'var(--cf-blue)' : 'var(--text-light)' }}
-          >
-            {conversionRateDisplay}
+          <span className="metric-label" title={isProductMode ? "Products in Cart" : "Sessions with Cart Additions"}>
+            {isProductMode ? "Products in Cart" : "Sessions with Cart Additions"}
           </span>
-          <span className="metric-caption">(Cart Sessions / View Sessions) × 100</span>
+          <span className="metric-number" id="metric-cart-sessions">
+            {isProductMode ? distinctProductsCarted : addToCartSessions}
+          </span>
+          <span className="metric-caption" title={isProductMode ? "Distinct products added to cart" : "Distinct sessions adding to cart"}>
+            {isProductMode
+              ? (distinctProductsCarted === 1 ? '1 item in cart' : `${distinctProductsCarted} items in cart`)
+              : (addToCartSessions === 1 ? '1 cart session' : `${addToCartSessions} cart sessions`)}
+          </span>
         </div>
       </div>
 
-      {/* Card 4: Total Product Interactions */}
+      {/* Card 3: Total Add-to-Cart Events */}
       <div className="metric-card-white">
         <div className="metric-icon-bubble bubble-purple">
-          <span>⚡</span>
+          <span>📦</span>
         </div>
         <div className="metric-info">
-          <span className="metric-label">Total Interactions</span>
-          <span className="metric-number">{totalInteractions}</span>
-          <span className="metric-caption">Direct product actions recorded</span>
+          <span className="metric-label" title="Total Add-to-Cart Events">Total Cart Actions</span>
+          <span className="metric-number" id="metric-total-cart-events">{totalCartEvents}</span>
+          <span className="metric-caption" title="Direct add-to-cart clicks recorded">
+            {totalCartEvents === 1 ? '1 cart addition action' : `${totalCartEvents} cart addition actions`}
+          </span>
+        </div>
+      </div>
+
+      {/* Card 4: Add-to-Cart Rate */}
+      <div className="metric-card-white">
+        <div className="metric-icon-bubble bubble-cyan">
+          <span>🎯</span>
+        </div>
+        <div className="metric-info">
+          <span className="metric-label" title={isProductMode ? "Product Add-to-Cart Rate" : "Session Conversion Rate"}>
+            {isProductMode ? "Product Add-to-Cart Rate" : "Session Conversion Rate"}
+          </span>
+          <span
+            className="metric-number"
+            id="metric-conversion-rate"
+            style={{ color: 'var(--cf-blue)' }}
+          >
+            {isProductMode ? productRateDisplay : sessionRateDisplay}
+          </span>
+          <span className="metric-caption" title={isProductMode ? `(${distinctProductsCarted} Carted / ${distinctProductsViewed} Explored Items) × 100` : `(${addToCartSessions} Cart Sessions / ${productViewSessions} View Sessions) × 100`}>
+            {isProductMode
+              ? `(${distinctProductsCarted} Carted / ${distinctProductsViewed} Explored) × 100`
+              : `(${addToCartSessions} Cart / ${productViewSessions} View Sessions) × 100`}
+          </span>
         </div>
       </div>
     </div>
@@ -113,65 +161,157 @@ function FunnelKpiCards({ funnel = {}, comparison = [] }) {
 /**
  * 2. Visual Step-Down Conversion Funnel
  */
-function ConversionFunnelVisualizer({ funnel = {} }) {
-  const viewSessions = funnel.productViewSessions || 0;
-  const cartSessions = funnel.addToCartSessions || 0;
-  const rateText = funnel.conversionRateFormatted || 'N/A';
-  const rateNum = funnel.conversionRate || 0;
+function ConversionFunnelVisualizer({ funnel = {}, comparison = [], conversionMode = 'product', onToggleMode }) {
+  const productViewSessions = funnel.productViewSessions || 0;
+  const addToCartSessions = funnel.addToCartSessions || 0;
+
+  const activeComparisonProducts = comparison.filter(p => (p.clicks > 0 || p.addToCart > 0 || p.favorites > 0));
+  const distinctProductsViewed = funnel.distinctProductsViewed !== undefined
+    ? funnel.distinctProductsViewed
+    : (activeComparisonProducts.length > 0 ? activeComparisonProducts.length : (productViewSessions > 0 ? 1 : 0));
+  const distinctProductsCarted = funnel.distinctProductsCarted !== undefined
+    ? funnel.distinctProductsCarted
+    : comparison.filter(p => p.addToCart > 0).length;
+
+  const isProductMode = conversionMode === 'product';
+
+  const viewCount = isProductMode ? distinctProductsViewed : productViewSessions;
+  const cartCount = isProductMode ? distinctProductsCarted : addToCartSessions;
+
+  const productRate = distinctProductsViewed > 0
+    ? Math.round((distinctProductsCarted / distinctProductsViewed) * 1000) / 10
+    : null;
+  const productRateDisplay = funnel.productConversionRateFormatted || (productRate !== null ? `${productRate}%` : 'N/A');
+
+  const sessionRate = productViewSessions > 0
+    ? Math.round((addToCartSessions / productViewSessions) * 1000) / 10
+    : null;
+  const sessionRateDisplay = funnel.sessionConversionRateFormatted || (sessionRate !== null ? `${sessionRate}%` : 'N/A');
+
+  const rateText = isProductMode ? productRateDisplay : sessionRateDisplay;
+  const rateNum = isProductMode ? (productRate || 0) : (sessionRate || 0);
 
   return (
     <div className="card-panel" style={{ marginBottom: '24px' }}>
-      <div className="card-header-bar">
+      <div className="card-header-bar" style={{ flexWrap: 'wrap', gap: '12px' }}>
         <div>
-          <div className="card-header-title">
+          <div className="card-header-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span>🌪️</span>
             <span>Product Conversion Funnel</span>
           </div>
           <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
-            Progression from initial product view to cart intent across distinct browser sessions.
+            {isProductMode
+              ? `Item-level conversion: progression from viewed products to cart additions across the catalog.`
+              : `Visitor-level conversion: progression from initial store visit to cart intent across distinct sessions.`}
           </div>
         </div>
-        <div
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-            background: '#ecfdf5',
-            border: '1px solid #a7f3d0',
-            color: '#065f46',
-            padding: '5px 12px',
-            borderRadius: '9999px',
-            fontSize: '12px',
-            fontWeight: 700
-          }}
-        >
-          <span>🎯 Conversion Rate:</span>
-          <span>{rateText}</span>
+
+        {/* Dimension Mode Toggle & Rate Badge */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          {onToggleMode && (
+            <div
+              style={{
+                display: 'inline-flex',
+                background: '#f1f5f9',
+                padding: '3px',
+                borderRadius: '10px',
+                border: '1px solid #e2e8f0'
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => onToggleMode('product')}
+                style={{
+                  border: 'none',
+                  background: isProductMode ? '#ffffff' : 'transparent',
+                  color: isProductMode ? 'var(--cf-blue)' : 'var(--text-secondary)',
+                  fontWeight: 700,
+                  fontSize: '11px',
+                  padding: '5px 10px',
+                  borderRadius: '7px',
+                  cursor: 'pointer',
+                  boxShadow: isProductMode ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                  transition: 'all 0.2s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+                title="Accurate item-level conversion: items added to cart divided by items explored"
+              >
+                <span>🛍️</span>
+                <span>By Product Items ({productRateDisplay})</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => onToggleMode('session')}
+                style={{
+                  border: 'none',
+                  background: !isProductMode ? '#ffffff' : 'transparent',
+                  color: !isProductMode ? 'var(--cf-blue)' : 'var(--text-secondary)',
+                  fontWeight: 700,
+                  fontSize: '11px',
+                  padding: '5px 10px',
+                  borderRadius: '7px',
+                  cursor: 'pointer',
+                  boxShadow: !isProductMode ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                  transition: 'all 0.2s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+                title="Visitor session conversion: sessions with cart add divided by total sessions"
+              >
+                <span>👥</span>
+                <span>By Visitor Sessions ({sessionRateDisplay})</span>
+              </button>
+            </div>
+          )}
+
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              background: cartCount > 0 ? '#ecfdf5' : '#f8fafc',
+              border: `1px solid ${cartCount > 0 ? '#a7f3d0' : '#e2e8f0'}`,
+              color: cartCount > 0 ? '#065f46' : 'var(--text-muted)',
+              padding: '5px 12px',
+              borderRadius: '9999px',
+              fontSize: '12px',
+              fontWeight: 700
+            }}
+          >
+            <span>🎯 {isProductMode ? 'Product Rate:' : 'Session Rate:'}</span>
+            <span>{rateText}</span>
+          </div>
         </div>
       </div>
 
       <div style={{ padding: '24px' }}>
-        {viewSessions === 0 ? (
+        {viewCount === 0 ? (
           <div className="empty-state-card" style={{ padding: '24px 16px' }}>
             <div className="empty-state-icon" style={{ fontSize: '28px' }}>🔍</div>
             <div className="empty-state-heading" style={{ fontSize: '14.5px' }}>No Product View Telemetry Recorded Yet</div>
             <div className="empty-state-text" style={{ fontSize: '12.5px' }}>
-              Browse products or view product details on the Aura Audio demo store to initiate the conversion funnel.
+              Browse products or view product details on the Amazon Store demo to initiate the conversion funnel.
             </div>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {/* Stage 1: Product Views */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-              <div style={{ width: '160px', flexShrink: 0 }}>
+            {/* Stage 1: Views */}
+            <div className="funnel-stage-row">
+              <div className="funnel-stage-label">
                 <div style={{ fontWeight: 700, fontSize: '13.5px', color: 'var(--text-primary)' }}>
-                  1. Product Views
+                  {isProductMode ? '1. Products Explored' : '1. Product Views'}
                 </div>
                 <div style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>
-                  {viewSessions} distinct session{viewSessions === 1 ? '' : 's'}
+                  {isProductMode
+                    ? `${viewCount} distinct product${viewCount === 1 ? '' : 's'} viewed`
+                    : `${viewCount} distinct session${viewCount === 1 ? '' : 's'}`}
                 </div>
               </div>
-              <div style={{ flexGrow: 1, background: '#f1f5f9', borderRadius: '10px', height: '28px', overflow: 'hidden' }}>
+              <div style={{ flexGrow: 1, width: '100%', background: '#f1f5f9', borderRadius: '10px', height: '28px', overflow: 'hidden' }}>
                 <div
                   style={{
                     width: '100%',
@@ -186,47 +326,70 @@ function ConversionFunnelVisualizer({ funnel = {} }) {
                     fontSize: '12px'
                   }}
                 >
-                  100% of Viewers ({viewSessions})
+                  {isProductMode
+                    ? `100% of Explored Catalog (${viewCount} Products)`
+                    : `100% of Viewers (${viewCount} Sessions)`}
                 </div>
               </div>
             </div>
 
             {/* Transition indicator */}
-            <div style={{ display: 'flex', alignItems: 'center', paddingLeft: '176px', gap: '8px' }}>
+            <div className="funnel-transition-indicator">
               <span style={{ fontSize: '14px', color: 'var(--text-light)' }}>⬇️</span>
-              <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--cf-blue)' }}>
-                {rateText} converted to shopping cart
+              <span style={{ fontSize: '12px', fontWeight: 600, color: cartCount > 0 ? 'var(--cf-blue)' : 'var(--text-muted)' }}>
+                {isProductMode
+                  ? `${rateText} converted to shopping cart (${cartCount} of ${viewCount} products)`
+                  : `${rateText} converted to shopping cart`}
               </span>
             </div>
 
             {/* Stage 2: Add to Cart */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-              <div style={{ width: '160px', flexShrink: 0 }}>
+            <div className="funnel-stage-row">
+              <div className="funnel-stage-label">
                 <div style={{ fontWeight: 700, fontSize: '13.5px', color: 'var(--text-primary)' }}>
                   2. Added to Cart
                 </div>
                 <div style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>
-                  {cartSessions} distinct session{cartSessions === 1 ? '' : 's'}
+                  {isProductMode
+                    ? `${cartCount} distinct product${cartCount === 1 ? '' : 's'} in cart`
+                    : `${cartCount} distinct session${cartCount === 1 ? '' : 's'}`}
                 </div>
               </div>
-              <div style={{ flexGrow: 1, background: '#f1f5f9', borderRadius: '10px', height: '28px', overflow: 'hidden' }}>
-                <div
-                  style={{
-                    width: `${Math.min(Math.max(rateNum, 4), 100)}%`,
-                    height: '100%',
-                    background: 'linear-gradient(90deg, #10b981, #34d399)',
-                    borderRadius: '10px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    paddingLeft: '12px',
-                    color: '#ffffff',
-                    fontWeight: 700,
-                    fontSize: '12px',
-                    transition: 'width 0.6s ease'
-                  }}
-                >
-                  {rateText} ({cartSessions})
-                </div>
+              <div style={{ flexGrow: 1, width: '100%', background: '#f1f5f9', borderRadius: '10px', height: '28px', overflow: 'hidden', position: 'relative' }}>
+                {cartCount > 0 ? (
+                  <div
+                    style={{
+                      width: `${Math.min(Math.max(rateNum, 5), 100)}%`,
+                      height: '100%',
+                      background: 'linear-gradient(90deg, #10b981, #34d399)',
+                      borderRadius: '10px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      paddingLeft: '12px',
+                      color: '#ffffff',
+                      fontWeight: 700,
+                      fontSize: '12px',
+                      transition: 'width 0.6s ease'
+                    }}
+                  >
+                    {rateText} ({cartCount} {isProductMode ? 'item' : 'session'}{cartCount === 1 ? '' : 's'})
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      paddingLeft: '12px',
+                      color: 'var(--text-muted)',
+                      fontWeight: 600,
+                      fontSize: '12px'
+                    }}
+                  >
+                    0% (0 cart additions recorded)
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -237,33 +400,86 @@ function ConversionFunnelVisualizer({ funnel = {} }) {
 }
 
 /**
+ * Helper to truncate text with ellipsis
+ */
+function truncateChartText(str = '', maxLen = 16) {
+  if (!str) return '';
+  return str.length > maxLen ? `${str.substring(0, maxLen - 1)}…` : str;
+}
+
+/**
  * 3. Product Interaction Comparison Chart
- * Pure React SVG Grouped Bar Chart comparing Clicks, Cart Additions, and Net Favorites
+ * Grouped Bar Chart comparing Clicks, Cart Additions, and Net Favorites
+ * Includes:
+ * - Filter by Active / Top 6 / All Catalog
+ * - View Toggle: Grouped Columns (with -35° angled labels & hover card) vs Horizontal Ranking Bars
+ * - Interactive hover tooltip with exact metric breakdown
+ * - Responsive SVG and mobile layout
  */
 function ProductEngagementChart({ comparison = [] }) {
+  const [filterMode, setFilterMode] = React.useState('active'); // 'active' | 'top6' | 'all'
+  const [chartView, setChartView] = React.useState('columns'); // 'columns' | 'bars'
+  const [hoveredItem, setHoveredItem] = React.useState(null);
+  const hoveredRef = React.useRef(null);
+
+  const handleHover = React.useCallback((item) => {
+    if (hoveredRef.current?.productId !== item.productId) {
+      hoveredRef.current = item;
+      setHoveredItem(item);
+    }
+  }, []);
+
+  const handleLeave = React.useCallback(() => {
+    hoveredRef.current = null;
+    setHoveredItem(null);
+  }, []);
+
+  // Active items (items with at least 1 interaction)
+  const activeItems = React.useMemo(
+    () => comparison.filter(p => (p.totalInteractions || 0) > 0),
+    [comparison]
+  );
+
+  // Top 6 items by total interactions
+  const top6Items = React.useMemo(
+    () => [...comparison].sort((a, b) => (b.totalInteractions || 0) - (a.totalInteractions || 0)).slice(0, 6),
+    [comparison]
+  );
+
+  // Determine items to display based on active filter
+  const displayedItems = React.useMemo(() => {
+    if (filterMode === 'active') {
+      return activeItems.length > 0 ? activeItems : top6Items;
+    }
+    if (filterMode === 'top6') {
+      return top6Items;
+    }
+    return comparison;
+  }, [filterMode, activeItems, top6Items, comparison]);
+
   // Find highest interaction count for scale
   const maxVal = Math.max(
     1,
-    ...comparison.map(p => Math.max(p.clicks || 0, p.addToCart || 0, p.favorites || 0))
+    ...displayedItems.map(p => Math.max(p.clicks || 0, p.addToCart || 0, p.favorites || 0))
   );
 
-  const hasInteractions = comparison.some(p => p.totalInteractions > 0);
+  const hasInteractions = comparison.some(p => (p.totalInteractions || 0) > 0);
 
-  // SVG Chart Dimensions
-  const svgWidth = 860;
-  const svgHeight = 260;
-  const padLeft = 45;
-  const padRight = 20;
-  const padTop = 30;
-  const padBottom = 55;
+  // SVG Chart Dimensions for Column View
+  const numItems = Math.max(1, displayedItems.length);
+  const minItemWidth = 100;
+  const padLeft = 52;
+  const padRight = 30;
+  const padTop = 36;
+  const padBottom = 96; // Generous space for -35° angled labels
+  const svgHeight = 330;
+  const plotHeight = svgHeight - padTop - padBottom; // ~198px
+  const svgWidth = Math.max(860, padLeft + padRight + numItems * minItemWidth);
   const plotWidth = svgWidth - padLeft - padRight;
-  const plotHeight = svgHeight - padTop - padBottom;
-
-  const numItems = comparison.length || 1;
   const groupWidth = plotWidth / numItems;
-  const barWidth = Math.max(12, Math.min(26, (groupWidth - 36) / 3));
+  const barWidth = Math.max(12, Math.min(22, (groupWidth - 32) / 3));
 
-  // Y-axis grid ticks
+  // Y-axis grid ticks (0, 1/3, 2/3, max)
   const ticks = [0, Math.round(maxVal * 0.33), Math.round(maxVal * 0.66), maxVal];
   const uniqueTicks = Array.from(new Set(ticks)).sort((a, b) => a - b);
 
@@ -280,21 +496,167 @@ function ProductEngagementChart({ comparison = [] }) {
           </div>
         </div>
 
-        {/* Legend */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 600 }}>
-            <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: '#f59e0b', display: 'inline-block' }}></span>
-            <span>Product Clicks</span>
+        {/* Filter & View Controls */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          {/* Dataset Filter Pills */}
+          <div style={{ display: 'inline-flex', background: '#f1f5f9', padding: '3px', borderRadius: '9999px', border: '1px solid var(--border-card)' }}>
+            <button
+              onClick={() => setFilterMode('active')}
+              style={{
+                background: filterMode === 'active' ? '#ffffff' : 'transparent',
+                color: filterMode === 'active' ? 'var(--cf-blue)' : 'var(--text-muted)',
+                fontWeight: filterMode === 'active' ? 700 : 500,
+                border: 'none',
+                padding: '4px 12px',
+                borderRadius: '9999px',
+                fontSize: '11.5px',
+                cursor: 'pointer',
+                boxShadow: filterMode === 'active' ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
+                transition: 'all 0.15s ease'
+              }}
+              title="Show only products with recorded activity"
+            >
+              🔥 Active ({activeItems.length})
+            </button>
+            <button
+              onClick={() => setFilterMode('top6')}
+              style={{
+                background: filterMode === 'top6' ? '#ffffff' : 'transparent',
+                color: filterMode === 'top6' ? 'var(--cf-blue)' : 'var(--text-muted)',
+                fontWeight: filterMode === 'top6' ? 700 : 500,
+                border: 'none',
+                padding: '4px 12px',
+                borderRadius: '9999px',
+                fontSize: '11.5px',
+                cursor: 'pointer',
+                boxShadow: filterMode === 'top6' ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
+                transition: 'all 0.15s ease'
+              }}
+              title="Show top 6 ranked products"
+            >
+              ⭐ Top 6
+            </button>
+            <button
+              onClick={() => setFilterMode('all')}
+              style={{
+                background: filterMode === 'all' ? '#ffffff' : 'transparent',
+                color: filterMode === 'all' ? 'var(--cf-blue)' : 'var(--text-muted)',
+                fontWeight: filterMode === 'all' ? 700 : 500,
+                border: 'none',
+                padding: '4px 12px',
+                borderRadius: '9999px',
+                fontSize: '11.5px',
+                cursor: 'pointer',
+                boxShadow: filterMode === 'all' ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
+                transition: 'all 0.15s ease'
+              }}
+              title="Show all catalog products"
+            >
+              📦 All ({comparison.length})
+            </button>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 600 }}>
-            <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: '#10b981', display: 'inline-block' }}></span>
-            <span>Add to Cart</span>
+
+          {/* View Mode Toggle: Columns vs Horizontal Bars */}
+          <div style={{ display: 'inline-flex', background: '#f1f5f9', padding: '3px', borderRadius: '9999px', border: '1px solid var(--border-card)' }}>
+            <button
+              onClick={() => setChartView('columns')}
+              style={{
+                background: chartView === 'columns' ? '#ffffff' : 'transparent',
+                color: chartView === 'columns' ? 'var(--cf-blue)' : 'var(--text-muted)',
+                fontWeight: chartView === 'columns' ? 700 : 500,
+                border: 'none',
+                padding: '4px 10px',
+                borderRadius: '9999px',
+                fontSize: '11.5px',
+                cursor: 'pointer',
+                boxShadow: chartView === 'columns' ? '0 1px 3px rgba(0,0,0,0.06)' : 'none'
+              }}
+              title="Grouped column chart view"
+            >
+              📊 Columns
+            </button>
+            <button
+              onClick={() => setChartView('bars')}
+              style={{
+                background: chartView === 'bars' ? '#ffffff' : 'transparent',
+                color: chartView === 'bars' ? 'var(--cf-blue)' : 'var(--text-muted)',
+                fontWeight: chartView === 'bars' ? 700 : 500,
+                border: 'none',
+                padding: '4px 10px',
+                borderRadius: '9999px',
+                fontSize: '11.5px',
+                cursor: 'pointer',
+                boxShadow: chartView === 'bars' ? '0 1px 3px rgba(0,0,0,0.06)' : 'none'
+              }}
+              title="Horizontal ranking bars view (immune to text overlap)"
+            >
+              📑 Bars
+            </button>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 600 }}>
-            <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: '#f43f5e', display: 'inline-block' }}></span>
-            <span>Active Favorites</span>
+
+          {/* Legend */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11.5px', fontWeight: 600 }}>
+              <span style={{ width: '10px', height: '10px', borderRadius: '3px', background: '#f59e0b', display: 'inline-block' }}></span>
+              <span>Clicks</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11.5px', fontWeight: 600 }}>
+              <span style={{ width: '10px', height: '10px', borderRadius: '3px', background: '#10b981', display: 'inline-block' }}></span>
+              <span>Cart</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11.5px', fontWeight: 600 }}>
+              <span style={{ width: '10px', height: '10px', borderRadius: '3px', background: '#f43f5e', display: 'inline-block' }}></span>
+              <span>Favorites</span>
+            </div>
           </div>
         </div>
+      </div>
+
+      {/* Interactive Tooltip & Inspection Strip (Fixed height guarantees 0px layout shift & zero flicker) */}
+      <div
+        style={{
+          margin: '12px 20px 0',
+          padding: '8px 16px',
+          minHeight: '44px',
+          boxSizing: 'border-box',
+          background: hoveredItem
+            ? 'linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%)'
+            : '#f8fafc',
+          border: `1px solid ${hoveredItem ? '#bfdbfe' : '#e2e8f0'}`,
+          borderRadius: '10px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '8px',
+          fontSize: '12.5px',
+          transition: 'background 0.15s ease, border-color 0.15s ease'
+        }}
+      >
+        {hoveredItem ? (
+          <>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flexWrap: 'wrap' }}>
+              <span style={{ fontWeight: 800, color: 'var(--text-primary)' }}>{hoveredItem.productName}</span>
+              <span style={{ background: '#e0f2fe', color: '#0369a1', padding: '2px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 600 }}>
+                {hoveredItem.productCategory}
+              </span>
+              <span style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontSize: '11px' }}>
+                ({hoveredItem.productId})
+              </span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', fontWeight: 700, flexWrap: 'wrap' }}>
+              <span style={{ color: '#b45309' }}>🖱️ {hoveredItem.clicks} Clicks</span>
+              <span style={{ color: '#047857' }}>🛒 {hoveredItem.addToCart} Cart</span>
+              <span style={{ color: '#be123c' }}>❤️ {hoveredItem.favorites} Net Favs</span>
+              <span style={{ color: 'var(--cf-blue)' }}>⚡ {hoveredItem.totalInteractions} Total</span>
+            </div>
+          </>
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-muted)', fontSize: '12px' }}>
+            <span>💡</span>
+            <span>Hover or tap any product column, bar, or label to inspect live telemetry breakdown</span>
+          </div>
+        )}
       </div>
 
       <div style={{ padding: '20px', overflowX: 'auto' }}>
@@ -303,13 +665,81 @@ function ProductEngagementChart({ comparison = [] }) {
             <div className="empty-state-icon" style={{ fontSize: '32px' }}>📊</div>
             <div className="empty-state-heading" style={{ fontSize: '15px' }}>No Product Engagement Data Yet</div>
             <div className="empty-state-text" style={{ fontSize: '12.5px' }}>
-              Interact with products on the Aura Audio demo store (clicks, cart, or favorites) to visualize comparison metrics.
+              Interact with products on the Amazon Store demo (clicks, cart, or favorites) to visualize comparison metrics.
             </div>
           </div>
+        ) : chartView === 'bars' ? (
+          /* Horizontal Ranking Bars View */
+          <div className="horizontal-bars-container">
+            {displayedItems.map((item, idx) => (
+              <div
+                key={item.productId || idx}
+                className="horizontal-bar-row"
+                onMouseEnter={() => handleHover(item)}
+                onMouseLeave={handleLeave}
+              >
+                <div className="horizontal-bar-meta">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--cf-blue)', background: 'var(--cf-blue-light)', padding: '1px 6px', borderRadius: '4px' }}>
+                      #{idx + 1}
+                    </span>
+                    <span className="bar-product-name" title={item.productName}>
+                      {item.productName}
+                    </span>
+                  </div>
+                  <span className="bar-category-tag">{item.productCategory}</span>
+                </div>
+
+                <div className="horizontal-bar-tracks">
+                  {/* Clicks Track */}
+                  <div className="bar-track-row">
+                    <span className="bar-track-label">Clicks</span>
+                    <div className="bar-track-bg">
+                      <div
+                        className="bar-fill amber"
+                        style={{ width: `${maxVal > 0 ? (item.clicks / maxVal) * 100 : 0}%` }}
+                      ></div>
+                    </div>
+                    <span className="bar-track-val">{item.clicks}</span>
+                  </div>
+
+                  {/* Add to Cart Track */}
+                  <div className="bar-track-row">
+                    <span className="bar-track-label">Cart</span>
+                    <div className="bar-track-bg">
+                      <div
+                        className="bar-fill emerald"
+                        style={{ width: `${maxVal > 0 ? (item.addToCart / maxVal) * 100 : 0}%` }}
+                      ></div>
+                    </div>
+                    <span className="bar-track-val">{item.addToCart}</span>
+                  </div>
+
+                  {/* Favorites Track */}
+                  <div className="bar-track-row">
+                    <span className="bar-track-label">Favs</span>
+                    <div className="bar-track-bg">
+                      <div
+                        className="bar-fill rose"
+                        style={{ width: `${maxVal > 0 ? (item.favorites / maxVal) * 100 : 0}%` }}
+                      ></div>
+                    </div>
+                    <span className="bar-track-val">{item.favorites}</span>
+                  </div>
+                </div>
+
+                <div className="horizontal-bar-total">
+                  <strong>{item.totalInteractions}</strong>
+                  <span>actions</span>
+                </div>
+              </div>
+            ))}
+          </div>
         ) : (
+          /* Column View with Angled Collision-Proof Labels */
           <svg
             viewBox={`0 0 ${svgWidth} ${svgHeight}`}
-            style={{ width: '100%', height: 'auto', minWidth: '600px', display: 'block' }}
+            style={{ width: '100%', height: 'auto', minWidth: `${Math.min(svgWidth, 680)}px`, display: 'block' }}
           >
             {/* Horizontal Gridlines & Y-axis labels */}
             {uniqueTicks.map((tickVal, idx) => {
@@ -340,7 +770,7 @@ function ProductEngagementChart({ comparison = [] }) {
             })}
 
             {/* Product Groups */}
-            {comparison.map((item, groupIdx) => {
+            {displayedItems.map((item, groupIdx) => {
               const groupCenterX = padLeft + groupIdx * groupWidth + groupWidth / 2;
               const totalBarsWidth = barWidth * 3 + 8;
               const startX = groupCenterX - totalBarsWidth / 2;
@@ -352,9 +782,26 @@ function ProductEngagementChart({ comparison = [] }) {
               const clickY = padTop + plotHeight - clickH;
               const cartY = padTop + plotHeight - cartH;
               const favY = padTop + plotHeight - favH;
+              const isHovered = hoveredItem?.productId === item.productId;
 
               return (
-                <g key={item.productId || groupIdx}>
+                <g
+                  key={item.productId || groupIdx}
+                  onMouseEnter={() => handleHover(item)}
+                  onMouseLeave={handleLeave}
+                  style={{ cursor: 'pointer' }}
+                >
+                  {/* Full-column continuous hit-target and highlight background */}
+                  <rect
+                    x={groupCenterX - groupWidth / 2 + 2}
+                    y={padTop}
+                    width={groupWidth - 4}
+                    height={svgHeight - padTop}
+                    fill={isHovered ? "rgba(37, 99, 235, 0.06)" : "transparent"}
+                    rx="8"
+                    style={{ pointerEvents: 'all' }}
+                  />
+
                   {/* Bar 1: Clicks (Amber) */}
                   <rect
                     x={startX}
@@ -363,8 +810,9 @@ function ProductEngagementChart({ comparison = [] }) {
                     height={Math.max(clickH, 0)}
                     fill="#f59e0b"
                     rx="4"
-                    title={`${item.productName} Clicks: ${item.clicks}`}
-                  />
+                  >
+                    <title>{`${item.productName} — Clicks: ${item.clicks}`}</title>
+                  </rect>
                   {item.clicks > 0 && (
                     <text
                       x={startX + barWidth / 2}
@@ -386,8 +834,9 @@ function ProductEngagementChart({ comparison = [] }) {
                     height={Math.max(cartH, 0)}
                     fill="#10b981"
                     rx="4"
-                    title={`${item.productName} Add to Cart: ${item.addToCart}`}
-                  />
+                  >
+                    <title>{`${item.productName} — Add to Cart: ${item.addToCart}`}</title>
+                  </rect>
                   {item.addToCart > 0 && (
                     <text
                       x={startX + barWidth + 4 + barWidth / 2}
@@ -409,8 +858,9 @@ function ProductEngagementChart({ comparison = [] }) {
                     height={Math.max(favH, 0)}
                     fill="#f43f5e"
                     rx="4"
-                    title={`${item.productName} Favorites: ${item.favorites}`}
-                  />
+                  >
+                    <title>{`${item.productName} — Favorites: ${item.favorites}`}</title>
+                  </rect>
                   {item.favorites > 0 && (
                     <text
                       x={startX + (barWidth + 4) * 2 + barWidth / 2}
@@ -424,27 +874,27 @@ function ProductEngagementChart({ comparison = [] }) {
                     </text>
                   )}
 
-                  {/* Product Label under group */}
-                  <text
-                    x={groupCenterX}
-                    y={svgHeight - padBottom + 18}
-                    textAnchor="middle"
-                    fontSize="11.5"
-                    fontWeight="700"
-                    fill="#1e293b"
-                  >
-                    {item.productName}
-                  </text>
-                  <text
-                    x={groupCenterX}
-                    y={svgHeight - padBottom + 32}
-                    textAnchor="middle"
-                    fontSize="10"
-                    fill="#64748b"
-                    fontFamily="var(--font-mono)"
-                  >
-                    {item.productCategory || item.productId}
-                  </text>
+                  {/* Collision-Proof Angled Labels (-35° rotation) */}
+                  <g transform={`translate(${groupCenterX}, ${svgHeight - padBottom + 16}) rotate(-35)`}>
+                    <text
+                      textAnchor="end"
+                      fontSize="11"
+                      fontWeight={isHovered ? '800' : '700'}
+                      fill={isHovered ? '#2563eb' : '#1e293b'}
+                    >
+                      {truncateChartText(item.productName, 18)}
+                      <title>{item.productName} ({item.productCategory})</title>
+                    </text>
+                    <text
+                      textAnchor="end"
+                      y="13"
+                      fontSize="9.5"
+                      fill="#64748b"
+                      fontFamily="var(--font-mono)"
+                    >
+                      {truncateChartText(item.productCategory || item.productId, 16)}
+                    </text>
+                  </g>
                 </g>
               );
             })}
@@ -638,17 +1088,20 @@ export default function ProductRankings({
   const funnel = productData.funnel || {};
   const comparison = productData.comparison || [];
 
+  // Default to 'product' so when viewing multiple items and adding 1, it calculates the accurate product conversion (e.g. 1/6 = 16.7%)
+  const [conversionMode, setConversionMode] = React.useState('product'); // 'product' or 'session'
+
   const { mostClicked = [], mostAddedToCart = [], mostFavorited = [] } = activeRankings;
 
   return (
-    <div style={{ marginTop: '28px' }}>
-      {/* Section Header with Export to CSV Button (matching reference screenshot) */}
+    <div style={{ marginTop: '10px' }}>
+      {/* Section Header with Export to CSV Button & Refresh */}
       <div
         style={{
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          marginBottom: '20px',
+          marginBottom: '24px',
           flexWrap: 'wrap',
           gap: '14px',
           background: '#ffffff',
@@ -659,14 +1112,14 @@ export default function ProductRankings({
         }}
       >
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ fontSize: '26px' }}>🛍️</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <span style={{ fontSize: '30px' }}>🛍️</span>
             <div>
-              <h2 style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.4px', margin: 0 }}>
+              <h1 style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.5px', margin: 0 }}>
                 Product <span style={{ color: 'var(--cf-blue)' }}>Analytics & Conversion</span>
-              </h2>
-              <p style={{ fontSize: '12.5px', color: 'var(--text-muted)', marginTop: '2px', margin: 0 }}>
-                Real-time conversion funnels, engagement comparison, and performance rankings backed by MongoDB telemetry.
+              </h1>
+              <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '3px', margin: 0 }}>
+                Track product performance rankings, real-time conversion funnels, and multi-signal engagement comparison.
               </p>
             </div>
           </div>
@@ -719,11 +1172,20 @@ export default function ProductRankings({
         </div>
       )}
 
-      {/* 1. Funnel KPI Cards (matching reference screenshot top row) */}
-      <FunnelKpiCards funnel={funnel} comparison={comparison} />
+      {/* 1. Funnel KPI Cards (supporting accurate product items mode and visitor sessions mode) */}
+      <FunnelKpiCards
+        funnel={funnel}
+        comparison={comparison}
+        conversionMode={conversionMode}
+      />
 
-      {/* 2. Visual Conversion Funnel Card */}
-      <ConversionFunnelVisualizer funnel={funnel} />
+      {/* 2. Visual Conversion Funnel Card with Mode Switcher */}
+      <ConversionFunnelVisualizer
+        funnel={funnel}
+        comparison={comparison}
+        conversionMode={conversionMode}
+        onToggleMode={setConversionMode}
+      />
 
       {/* 3. Product Engagement Comparison Chart */}
       <ProductEngagementChart comparison={comparison} />

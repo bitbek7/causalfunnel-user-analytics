@@ -3,6 +3,7 @@ const cors = require('cors');
 const path = require('path');
 const morgan = require('morgan');
 require('dotenv').config();
+// Connected to MongoDB Atlas cluster
 
 const { connectDB } = require('./config/db');
 const apiRoutes = require('./routes/apiRoutes');

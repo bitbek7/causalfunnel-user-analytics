@@ -4,6 +4,15 @@ const Event = require('../models/Event');
  * Product catalog metadata to ensure stable names and categories
  */
 const CATALOG_INFO = {
+  'prod_echo_dot': { productName: 'Echo Dot Smart Speaker', productCategory: 'Smart Home' },
+  'prod_ring_doorbell': { productName: 'Ring Video Doorbell', productCategory: 'Smart Home' },
+  'prod_fire_tv_stick': { productName: 'Fire TV Stick 4K Max', productCategory: 'Smart Home' },
+  'prod_kindle_paperwhite': { productName: 'Kindle Paperwhite (16 GB)', productCategory: 'E-Readers & Books' },
+  'prod_instant_pot': { productName: 'Instant Pot Pro 10-in-1', productCategory: 'Home & Kitchen' },
+  'prod_ninja_airfryer': { productName: 'Ninja DualZone Air Fryer', productCategory: 'Home & Kitchen' },
+  'prod_fitbit_charge': { productName: 'Fitbit Charge 6 Tracker', productCategory: 'Sports & Wearables' },
+  'prod_yeti_tumbler': { productName: 'YETI Rambler 30 oz Tumbler', productCategory: 'Sports & Wearables' },
+  // Backward compatibility:
   'prod_aura_pro': { productName: 'Aura Pro Studio', productCategory: 'Studio Headphones' },
   'prod_aura_air': { productName: 'Aura Air Wireless', productCategory: 'Wireless Earbuds' },
   'prod_aura_stage': { productName: 'Aura Stage Monitors', productCategory: 'Stage Audio' },
@@ -123,35 +132,56 @@ async function getProductRankings(req, res) {
       { $limit: 10 }
     ]);
 
-    // 4. Product Conversion Funnel (Distinct Sessions)
-    // Stage 1: Sessions with at least one product view (product_view event, product detail page, or product card interaction)
-    const productViewFilter = {
+    // 4. Product Conversion Funnel Calculations
+    // A. Session-Based Conversion (Visitor Level)
+    const productViewSessions = await Event.distinct('sessionId', {
+      ...sourceFilter
+    });
+    const addToCartSessions = await Event.distinct('sessionId', {
+      ...sourceFilter,
+      eventType: 'add_to_cart'
+    });
+    const totalAddToCartEvents = await Event.countDocuments({
+      ...sourceFilter,
+      eventType: 'add_to_cart'
+    });
+
+    const sessionViewCount = productViewSessions.length;
+    const sessionCartCount = addToCartSessions.length;
+    let sessionConversionRate = null;
+    let sessionConversionRateFormatted = 'N/A';
+    if (sessionViewCount > 0) {
+      const rawRate = Math.min((sessionCartCount / sessionViewCount) * 100, 100);
+      sessionConversionRate = Math.round(rawRate * 10) / 10;
+      sessionConversionRateFormatted = `${sessionConversionRate}%`;
+    }
+
+    // B. Product Item-Based Conversion (Products Explored vs Products Added to Cart)
+    const distinctProductsViewed = await Event.distinct('productId', {
+      ...sourceFilter,
+      productId: { $exists: true, $ne: null, $ne: '' }
+    });
+    const distinctProductsCarted = await Event.distinct('productId', {
+      ...sourceFilter,
+      eventType: 'add_to_cart',
+      productId: { $exists: true, $ne: null, $ne: '' }
+    });
+    const totalProductViews = await Event.countDocuments({
       ...sourceFilter,
       $or: [
         { eventType: 'product_view' },
-        { pageUrl: { $regex: /product/i } },
         { productId: { $exists: true, $ne: null, $ne: '' } }
       ]
-    };
+    });
 
-    // Stage 2: Sessions with at least one add_to_cart event
-    const addToCartFilter = {
-      ...sourceFilter,
-      eventType: 'add_to_cart'
-    };
-
-    const productViewSessions = await Event.distinct('sessionId', productViewFilter);
-    const addToCartSessions = await Event.distinct('sessionId', addToCartFilter);
-
-    const productViewCount = productViewSessions.length;
-    const addToCartCount = addToCartSessions.length;
-
-    let conversionRate = null;
-    let conversionRateFormatted = 'N/A';
+    const productViewCount = distinctProductsViewed.length;
+    const productCartCount = distinctProductsCarted.length;
+    let productConversionRate = null;
+    let productConversionRateFormatted = 'N/A';
     if (productViewCount > 0) {
-      const rawRate = (addToCartCount / productViewCount) * 100;
-      conversionRate = Math.round(rawRate * 10) / 10;
-      conversionRateFormatted = `${conversionRate}%`;
+      const rawRate = Math.min((productCartCount / productViewCount) * 100, 100);
+      productConversionRate = Math.round(rawRate * 10) / 10;
+      productConversionRateFormatted = `${productConversionRate}%`;
     }
 
     // 5. Product Engagement Comparison (Clicks vs Cart vs Favorites for Chart & CSV)
@@ -193,6 +223,7 @@ async function getProductRankings(req, res) {
     // Sort comparison by total interactions descending, then by name
     comparison.sort((a, b) => b.totalInteractions - a.totalInteractions || a.productName.localeCompare(b.productName));
     const comparisonWithRanks = comparison.map((item, idx) => ({ rank: idx + 1, ...item }));
+    const totalProductInteractions = comparison.reduce((sum, item) => sum + (item.totalInteractions || 0), 0);
 
     return res.status(200).json({
       success: true,
@@ -203,10 +234,22 @@ async function getProductRankings(req, res) {
         mostFavorited: mostFavorited.map((item, idx) => ({ rank: idx + 1, ...item }))
       },
       funnel: {
-        productViewSessions: productViewCount,
-        addToCartSessions: addToCartCount,
-        conversionRate,
-        conversionRateFormatted
+        // Session-based conversion (visitor level)
+        productViewSessions: sessionViewCount,
+        addToCartSessions: sessionCartCount,
+        sessionConversionRate,
+        sessionConversionRateFormatted,
+        // Product item-based conversion (items viewed vs items carted - addresses user testing accuracy)
+        distinctProductsViewed: productViewCount,
+        distinctProductsCarted: productCartCount,
+        totalProductViews,
+        totalAddToCartEvents,
+        productConversionRate,
+        productConversionRateFormatted,
+        // Default conversion rate: product-level if available, falling back to session-level
+        conversionRate: productConversionRate !== null ? productConversionRate : sessionConversionRate,
+        conversionRateFormatted: productConversionRateFormatted !== 'N/A' ? productConversionRateFormatted : sessionConversionRateFormatted,
+        totalInteractions: totalProductInteractions
       },
       comparison: comparisonWithRanks
     });

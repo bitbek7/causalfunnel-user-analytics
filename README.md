@@ -6,7 +6,7 @@
 [![React](https://img.shields.io/badge/React-18-61dafb.svg)](https://react.dev/)
 [![Vite](https://img.shields.io/badge/Vite-5.4-purple.svg)](https://vitejs.dev/)
 
-A full-stack user behavior and product interaction analytics platform built for the **CausalFunnel Full-Stack Hiring Assignment**. The application captures real client-side telemetry on an e-commerce demo website (**Aura Audio**), persists raw events into **MongoDB**, computes real-time session aggregations and product conversion rankings via native MongoDB aggregation pipelines, and visualizes the telemetry in a modern React dashboard adhering to the **CausalFunnel Light SaaS Design System**.
+A production-grade full-stack user behavior and product interaction analytics platform built for the **CausalFunnel Full-Stack Hiring Assignment**. The application captures real client-side telemetry on an interactive multi-category e-commerce demo website (**Amazon Store**), persists raw events into **MongoDB**, computes real-time session aggregations, visitor journeys, click heatmaps, and product conversion funnels via native MongoDB aggregation pipelines, and visualizes the telemetry in a modern React dashboard adhering to the **CausalFunnel Light SaaS Design System**.
 
 ---
 
@@ -14,7 +14,7 @@ A full-stack user behavior and product interaction analytics platform built for 
 
 ```
 ┌────────────────────────────────────────────────────────┐
-│             DEMO E-COMMERCE WEBSITE (Aura Audio)       │
+│             DEMO E-COMMERCE WEBSITE (Amazon Store)     │
 │   • /demo/index.html & /demo/product.html              │
 │   • Add to Cart, Favorites toggle (♡ / ❤️), Card clicks │
 │   • Live Tracker HUD debugging indicator               │
@@ -85,6 +85,18 @@ A full-stack user behavior and product interaction analytics platform built for 
 
 5. **CausalFunnel SaaS Visual Design**:
    - Matches official CausalFunnel brand styling: light canvas (`#f8fafc`) with subtle lavender gradient glow (`#edf2fe`), white rounded cards, electric blue accents (`#2563eb`), floating pill navbar, and accessible typography.
+
+---
+
+## ⚖️ Assumptions & Architectural Trade-offs
+
+| Domain | Architectural Decision | Key Assumption & Trade-off |
+| :--- | :--- | :--- |
+| **Data Storage Model** | **Event-Sourced Raw Stream**: All client interactions (`page_view`, `click`, `add_to_cart`, `product_view`, `product_favorite`) are stored as immutable event documents in a single indexed MongoDB collection. | *Trade-off:* Aggregations run dynamically on query instead of incrementing pre-computed counters. *Benefit:* Preserves 100% telemetry fidelity, supports time-travel session replays, and eliminates data corruption from out-of-order writes. |
+| **Session Identification** | **Client-Side `localStorage` with fallback**: Session IDs (`cf_session_id`) are generated using browser `crypto.randomUUID()` and persisted in `localStorage`. | *Assumption:* Shoppers browse across multiple tabs in a single session. *Benefit:* Maintains session continuity across page refreshes and multi-tab browsing without requiring server-side session cookies or CORS cookie policies. |
+| **Coordinate System** | **Document-Relative (`pageX` / `pageY`)**: Clicks are mapped to document coordinates rather than viewport percentages (`clientX` / `clientY`). | *Trade-off:* Accounts for scrolling position. A click on a "Buy Now" button 1200px down a page is faithfully rendered at (x: 450, y: 1200) on the heatmap canvas regardless of the scrollbar offset. |
+| **Conversion Funnel Dimensions** | **Dual Conversion Architecture (Product Items vs Visitor Sessions)**: The engine computes both Product-Item Conversion ($\frac{\text{Carted Products}}{\text{Explored Products}} \times 100$) and Visitor-Session Conversion ($\frac{\text{Cart Sessions}}{\text{View Sessions}} \times 100$). | *Trade-off:* In small sample testing (e.g. 1 tester viewing 5 items and carting 1), session conversion is 100% ($1/1$), which can feel counterintuitive. Providing both with item-level default gives store admins complete accuracy. |
+| **Database Portability** | **Zero-Config Dual Connectivity**: Automatic fallback to `mongodb-memory-server` if `MONGODB_URI` is omitted, and instant switch to MongoDB Atlas when `MONGODB_URI` is configured in `.env`. | *Trade-off:* Evaluators can clone and run `npm start` immediately with zero setup, while production environments enjoy persistent cloud storage. |
 
 ---
 

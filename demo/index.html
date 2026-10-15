@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Aura Sound - Premium Audio Store (Demo)</title>
+  <title>Amazon Store — Multi-Category Catalog (Demo)</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -31,15 +31,15 @@
   <!-- Navigation Bar -->
   <header class="navbar">
     <a href="index.html" class="brand">
-      <span>⚡</span> Aura Audio
+      <span>📦</span> Amazon Store
     </a>
     <ul class="nav-links">
       <li><a href="index.html" class="active" id="nav-home">Home</a></li>
-      <li><a href="product.html" id="nav-headphones">Headphones</a></li>
-      <li><a href="product.html" id="nav-earbuds">Earbuds</a></li>
-      <li><a href="index.html#support" id="nav-support">Support</a></li>
     </ul>
     <div class="nav-actions">
+      <a href="http://localhost:5173/" target="_blank" rel="noopener noreferrer" class="btn-dashboard-nav" id="nav-btn-analytics" title="Open User Analytics Dashboard">
+        📊 Analytics App ↗
+      </a>
       <button class="btn-icon" id="btn-search" title="Search Catalog">🔍 Search</button>
       <button class="btn-icon" id="btn-cart" title="Shopping Cart">🛒 Cart (<span id="cart-counter">0</span>)</button>
     </div>
@@ -48,193 +48,388 @@
   <!-- Hero Banner -->
   <main>
     <section class="hero">
-      <div class="badge">Next-Generation Spatial Audio</div>
-      <h1>Sound Engineered for Perfection.</h1>
-      <p>Experience studio-grade active noise cancellation and ultra-wide frequency drivers tuned by acoustic masters.</p>
+      <div class="badge">
+        <span class="live-dot"></span>
+        <span>Interactive Telemetry Testbed &bull; Amazon Store Demo</span>
+      </div>
+      <h1>Live Demo Store for Real-Time User Analytics</h1>
+      <p class="hero-desc">
+        This is an interactive multi-category demo e-commerce store created to demonstrate client-side telemetry capture across diverse product departments. 
+        Every action on this site &mdash; page views, exact click coordinates, cart additions, and favorites &mdash; 
+        is tracked live and streamed directly to the <strong>User Analytics Application</strong>.
+      </p>
       <div class="hero-actions">
-        <a href="product.html" class="btn-primary" id="hero-btn-explore">Explore Flagship ANC &rarr;</a>
-        <button class="btn-secondary" id="hero-btn-demo">Listen to Sample</button>
+        <a href="http://localhost:5173/" target="_blank" rel="noopener noreferrer" class="btn-primary" id="hero-btn-dashboard">
+          <span>📊 Open User Analytics App</span>
+          <span class="btn-arrow">&rarr;</span>
+        </a>
+        <a href="#featured-products" class="btn-secondary" id="hero-btn-explore">
+          <span>🛒 Browse &amp; Generate Events &darr;</span>
+        </a>
+      </div>
+      <div class="hero-features-strip">
+        <div class="feature-tag">
+          <span>⚡ <strong>Live Telemetry:</strong> Real session events &bull; Zero mock data</span>
+        </div>
+        <div class="feature-tag">
+          <span>🎯 <strong>Document Coordinates:</strong> Pixel-accurate click heatmap tracking</span>
+        </div>
+        <div class="feature-tag">
+          <span>🛍️ <strong>Funnel Intelligence:</strong> Native MongoDB product rankings</span>
+        </div>
+      </div>
+      <div class="hero-guide-banner">
+        <span class="guide-badge">Reviewer Guide</span>
+        <span>Click products, add items to cart, or toggle favorites below &mdash; then launch the <strong>User Analytics App</strong> to watch your session journey, rankings, and heatmap update in real time!</span>
       </div>
     </section>
 
     <!-- Product Showcase -->
-    <section class="products-section">
+    <section class="products-section" id="featured-products">
       <div class="section-header">
         <div>
-          <h2 class="section-title">Featured Acoustics</h2>
-          <p class="section-desc">Click any product, favorite a model, or add to cart to generate real tracked user interactions.</p>
+          <h2 class="section-title">Trending &amp; Featured Products</h2>
+          <p class="section-desc">Explore multi-category items: click cards, add to cart, or toggle favorites to generate real tracked user interactions.</p>
         </div>
         <div>
-          <button class="btn-secondary" id="btn-filter-all" style="padding:6px 16px; font-size:13px;">View All (8)</button>
+          <button class="btn-secondary" id="btn-filter-all" style="padding:7px 18px; font-size:13.5px; font-weight:600;" onclick="toggleViewAll()">
+            <span id="btn-filter-all-text">View All (8)</span>
+          </button>
         </div>
       </div>
 
-      <div class="product-grid">
-        <!-- Product 1 -->
+      <!-- Category Filter Pills -->
+      <div class="category-filters-bar" id="category-filters">
+        <button class="filter-pill active" data-category="all" id="filter-pill-all" onclick="selectCategory('all')">
+          All Products (<span id="count-all">8</span>)
+        </button>
+        <button class="filter-pill" data-category="Smart Home" id="filter-pill-smarthome" onclick="selectCategory('Smart Home')">
+          🎙️ Smart Home (3)
+        </button>
+        <button class="filter-pill" data-category="E-Readers & Books" id="filter-pill-ereaders" onclick="selectCategory('E-Readers & Books')">
+          📖 E-Readers &amp; Books (1)
+        </button>
+        <button class="filter-pill" data-category="Home & Kitchen" id="filter-pill-kitchen" onclick="selectCategory('Home & Kitchen')">
+          🍳 Home &amp; Kitchen (2)
+        </button>
+        <button class="filter-pill" data-category="Sports & Wearables" id="filter-pill-wearables" onclick="selectCategory('Sports & Wearables')">
+          ⌚ Sports &amp; Wearables (2)
+        </button>
+      </div>
+
+      <!-- Quick Search Bar -->
+      <div class="catalog-search-bar" id="catalog-search-container" style="display:none;">
+        <div class="search-input-wrapper">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="catalog-search-input" placeholder="Search products by name or category (e.g. Echo, Kindle, Pot, Ring)..." autocomplete="off" oninput="handleSearchInput(this.value)" />
+          <button id="btn-clear-search" class="btn-clear-search" title="Clear Search" onclick="clearCatalogSearch()">&times;</button>
+        </div>
+      </div>
+
+      <div class="product-grid" id="main-product-grid">
+        <!-- Product 1: Smart Home (Featured) -->
         <article
           class="product-card"
-          id="card-aura-pro"
-          data-product-id="prod_aura_pro"
-          data-product-name="Aura Pro Studio"
-          data-product-category="Over-Ear ANC"
+          id="card-echo-dot"
+          data-product-id="prod_echo_dot"
+          data-product-name="Echo Dot Smart Speaker"
+          data-product-category="Smart Home"
         >
           <div class="product-img-box">
-            <span class="product-img-placeholder">🎧</span>
+            <span class="product-img-placeholder">🎙️</span>
           </div>
           <div class="product-info">
-            <span class="product-category">Over-Ear ANC</span>
-            <h3 class="product-name">Aura Pro Studio</h3>
-            <p class="product-price">$349.00</p>
+            <span class="product-category">Smart Home</span>
+            <h3 class="product-name">Echo Dot Smart Speaker</h3>
+            <p class="product-price">$49.99</p>
           </div>
           <div class="card-actions">
             <button
               class="btn-card-add"
-              id="btn-add-aura-pro"
-              onclick="handleAddToCart('prod_aura_pro', 'Aura Pro Studio', 'Over-Ear ANC')"
+              id="btn-add-echo-dot"
+              onclick="handleAddToCart('prod_echo_dot', 'Echo Dot Smart Speaker', 'Smart Home', 49.99, '🎙️')"
             >
               Add to Cart
             </button>
             <button
               class="btn-card-favorite"
-              id="fav-btn-prod_aura_pro"
-              onclick="toggleFavorite('prod_aura_pro', 'Aura Pro Studio', 'Over-Ear ANC')"
+              id="fav-btn-prod_echo_dot"
+              onclick="toggleFavorite('prod_echo_dot', 'Echo Dot Smart Speaker', 'Smart Home')"
               title="Add to Favorites"
             >
               ♡
             </button>
-            <a href="product.html?id=prod_aura_pro" class="btn-card-view" id="link-view-aura-pro">Details</a>
+            <a href="product.html?id=prod_echo_dot" class="btn-card-view" id="link-view-echo-dot">Details</a>
           </div>
         </article>
 
-        <!-- Product 2 -->
+        <!-- Product 2: E-Readers & Books (Featured) -->
         <article
           class="product-card"
-          id="card-aura-air"
-          data-product-id="prod_aura_air"
-          data-product-name="Aura Air Pods"
-          data-product-category="Wireless Earbuds"
+          id="card-kindle-paperwhite"
+          data-product-id="prod_kindle_paperwhite"
+          data-product-name="Kindle Paperwhite (16 GB)"
+          data-product-category="E-Readers & Books"
         >
           <div class="product-img-box">
-            <span class="product-img-placeholder">🎵</span>
+            <span class="product-img-placeholder">📖</span>
           </div>
           <div class="product-info">
-            <span class="product-category">Wireless Earbuds</span>
-            <h3 class="product-name">Aura Air Pods</h3>
-            <p class="product-price">$199.00</p>
+            <span class="product-category">E-Readers & Books</span>
+            <h3 class="product-name">Kindle Paperwhite (16 GB)</h3>
+            <p class="product-price">$139.99</p>
           </div>
           <div class="card-actions">
             <button
               class="btn-card-add"
-              id="btn-add-aura-air"
-              onclick="handleAddToCart('prod_aura_air', 'Aura Air Pods', 'Wireless Earbuds')"
+              id="btn-add-kindle-paperwhite"
+              onclick="handleAddToCart('prod_kindle_paperwhite', 'Kindle Paperwhite (16 GB)', 'E-Readers & Books', 139.99, '📖')"
             >
               Add to Cart
             </button>
             <button
               class="btn-card-favorite"
-              id="fav-btn-prod_aura_air"
-              onclick="toggleFavorite('prod_aura_air', 'Aura Air Pods', 'Wireless Earbuds')"
+              id="fav-btn-prod_kindle_paperwhite"
+              onclick="toggleFavorite('prod_kindle_paperwhite', 'Kindle Paperwhite (16 GB)', 'E-Readers & Books')"
               title="Add to Favorites"
             >
               ♡
             </button>
-            <a href="product.html?id=prod_aura_air" class="btn-card-view" id="link-view-aura-air">Details</a>
+            <a href="product.html?id=prod_kindle_paperwhite" class="btn-card-view" id="link-view-kindle-paperwhite">Details</a>
           </div>
         </article>
 
-        <!-- Product 3 -->
+        <!-- Product 3: Home & Kitchen (Featured) -->
         <article
           class="product-card"
-          id="card-aura-stage"
-          data-product-id="prod_aura_stage"
-          data-product-name="Aura Stage 360"
-          data-product-category="Home Speaker"
+          id="card-instant-pot"
+          data-product-id="prod_instant_pot"
+          data-product-name="Instant Pot Pro 10-in-1"
+          data-product-category="Home & Kitchen"
         >
           <div class="product-img-box">
-            <span class="product-img-placeholder">📻</span>
+            <span class="product-img-placeholder">🍳</span>
           </div>
           <div class="product-info">
-            <span class="product-category">Home Speaker</span>
-            <h3 class="product-name">Aura Stage 360</h3>
-            <p class="product-price">$499.00</p>
+            <span class="product-category">Home & Kitchen</span>
+            <h3 class="product-name">Instant Pot Pro 10-in-1</h3>
+            <p class="product-price">$129.95</p>
           </div>
           <div class="card-actions">
             <button
               class="btn-card-add"
-              id="btn-add-aura-stage"
-              onclick="handleAddToCart('prod_aura_stage', 'Aura Stage 360', 'Home Speaker')"
+              id="btn-add-instant-pot"
+              onclick="handleAddToCart('prod_instant_pot', 'Instant Pot Pro 10-in-1', 'Home & Kitchen', 129.95, '🍳')"
             >
               Add to Cart
             </button>
             <button
               class="btn-card-favorite"
-              id="fav-btn-prod_aura_stage"
-              onclick="toggleFavorite('prod_aura_stage', 'Aura Stage 360', 'Home Speaker')"
+              id="fav-btn-prod_instant_pot"
+              onclick="toggleFavorite('prod_instant_pot', 'Instant Pot Pro 10-in-1', 'Home & Kitchen')"
               title="Add to Favorites"
             >
               ♡
             </button>
-            <a href="product.html?id=prod_aura_stage" class="btn-card-view" id="link-view-aura-stage">Details</a>
+            <a href="product.html?id=prod_instant_pot" class="btn-card-view" id="link-view-instant-pot">Details</a>
           </div>
         </article>
 
-        <!-- Product 4 -->
+        <!-- Product 4: Sports & Wearables (Featured) -->
         <article
           class="product-card"
-          id="card-aura-bass"
-          data-product-id="prod_aura_bass"
-          data-product-name="Aura Bass Sub"
-          data-product-category="Subwoofer"
+          id="card-fitbit-charge"
+          data-product-id="prod_fitbit_charge"
+          data-product-name="Fitbit Charge 6 Tracker"
+          data-product-category="Sports & Wearables"
         >
           <div class="product-img-box">
-            <span class="product-img-placeholder">🔊</span>
+            <span class="product-img-placeholder">⌚</span>
           </div>
           <div class="product-info">
-            <span class="product-category">Subwoofer</span>
-            <h3 class="product-name">Aura Bass Sub</h3>
-            <p class="product-price">$399.00</p>
+            <span class="product-category">Sports & Wearables</span>
+            <h3 class="product-name">Fitbit Charge 6 Tracker</h3>
+            <p class="product-price">$159.95</p>
           </div>
           <div class="card-actions">
             <button
               class="btn-card-add"
-              id="btn-add-aura-bass"
-              onclick="handleAddToCart('prod_aura_bass', 'Aura Bass Sub', 'Subwoofer')"
+              id="btn-add-fitbit-charge"
+              onclick="handleAddToCart('prod_fitbit_charge', 'Fitbit Charge 6 Tracker', 'Sports & Wearables', 159.95, '⌚')"
             >
               Add to Cart
             </button>
             <button
               class="btn-card-favorite"
-              id="fav-btn-prod_aura_bass"
-              onclick="toggleFavorite('prod_aura_bass', 'Aura Bass Sub', 'Subwoofer')"
+              id="fav-btn-prod_fitbit_charge"
+              onclick="toggleFavorite('prod_fitbit_charge', 'Fitbit Charge 6 Tracker', 'Sports & Wearables')"
               title="Add to Favorites"
             >
               ♡
             </button>
-            <a href="product.html?id=prod_aura_bass" class="btn-card-view" id="link-view-aura-bass">Details</a>
+            <a href="product.html?id=prod_fitbit_charge" class="btn-card-view" id="link-view-fitbit-charge">Details</a>
           </div>
         </article>
+
+        <!-- Product 5: Smart Home (Extra / All) -->
+        <article
+          class="product-card extra-product hidden"
+          id="card-ring-doorbell"
+          data-product-id="prod_ring_doorbell"
+          data-product-name="Ring Video Doorbell"
+          data-product-category="Smart Home"
+        >
+          <div class="product-img-box">
+            <span class="product-img-placeholder">🔔</span>
+          </div>
+          <div class="product-info">
+            <span class="product-category">Smart Home</span>
+            <h3 class="product-name">Ring Video Doorbell</h3>
+            <p class="product-price">$99.99</p>
+          </div>
+          <div class="card-actions">
+            <button
+              class="btn-card-add"
+              id="btn-add-ring-doorbell"
+              onclick="handleAddToCart('prod_ring_doorbell', 'Ring Video Doorbell', 'Smart Home', 99.99, '🔔')"
+            >
+              Add to Cart
+            </button>
+            <button
+              class="btn-card-favorite"
+              id="fav-btn-prod_ring_doorbell"
+              onclick="toggleFavorite('prod_ring_doorbell', 'Ring Video Doorbell', 'Smart Home')"
+              title="Add to Favorites"
+            >
+              ♡
+            </button>
+            <a href="product.html?id=prod_ring_doorbell" class="btn-card-view" id="link-view-ring-doorbell">Details</a>
+          </div>
+        </article>
+
+        <!-- Product 6: Smart Home (Extra / All) -->
+        <article
+          class="product-card extra-product hidden"
+          id="card-fire-tv-stick"
+          data-product-id="prod_fire_tv_stick"
+          data-product-name="Fire TV Stick 4K Max"
+          data-product-category="Smart Home"
+        >
+          <div class="product-img-box">
+            <span class="product-img-placeholder">📺</span>
+          </div>
+          <div class="product-info">
+            <span class="product-category">Smart Home</span>
+            <h3 class="product-name">Fire TV Stick 4K Max</h3>
+            <p class="product-price">$59.99</p>
+          </div>
+          <div class="card-actions">
+            <button
+              class="btn-card-add"
+              id="btn-add-fire-tv-stick"
+              onclick="handleAddToCart('prod_fire_tv_stick', 'Fire TV Stick 4K Max', 'Smart Home', 59.99, '📺')"
+            >
+              Add to Cart
+            </button>
+            <button
+              class="btn-card-favorite"
+              id="fav-btn-prod_fire_tv_stick"
+              onclick="toggleFavorite('prod_fire_tv_stick', 'Fire TV Stick 4K Max', 'Smart Home')"
+              title="Add to Favorites"
+            >
+              ♡
+            </button>
+            <a href="product.html?id=prod_fire_tv_stick" class="btn-card-view" id="link-view-fire-tv-stick">Details</a>
+          </div>
+        </article>
+
+        <!-- Product 7: Home & Kitchen (Extra / All) -->
+        <article
+          class="product-card extra-product hidden"
+          id="card-ninja-airfryer"
+          data-product-id="prod_ninja_airfryer"
+          data-product-name="Ninja DualZone Air Fryer"
+          data-product-category="Home & Kitchen"
+        >
+          <div class="product-img-box">
+            <span class="product-img-placeholder">🍟</span>
+          </div>
+          <div class="product-info">
+            <span class="product-category">Home & Kitchen</span>
+            <h3 class="product-name">Ninja DualZone Air Fryer</h3>
+            <p class="product-price">$179.99</p>
+          </div>
+          <div class="card-actions">
+            <button
+              class="btn-card-add"
+              id="btn-add-ninja-airfryer"
+              onclick="handleAddToCart('prod_ninja_airfryer', 'Ninja DualZone Air Fryer', 'Home & Kitchen', 179.99, '🍟')"
+            >
+              Add to Cart
+            </button>
+            <button
+              class="btn-card-favorite"
+              id="fav-btn-prod_ninja_airfryer"
+              onclick="toggleFavorite('prod_ninja_airfryer', 'Ninja DualZone Air Fryer', 'Home & Kitchen')"
+              title="Add to Favorites"
+            >
+              ♡
+            </button>
+            <a href="product.html?id=prod_ninja_airfryer" class="btn-card-view" id="link-view-ninja-airfryer">Details</a>
+          </div>
+        </article>
+
+        <!-- Product 8: Sports & Wearables (Extra / All) -->
+        <article
+          class="product-card extra-product hidden"
+          id="card-yeti-tumbler"
+          data-product-id="prod_yeti_tumbler"
+          data-product-name="YETI Rambler 30 oz Tumbler"
+          data-product-category="Sports & Wearables"
+        >
+          <div class="product-img-box">
+            <span class="product-img-placeholder">🥤</span>
+          </div>
+          <div class="product-info">
+            <span class="product-category">Sports & Wearables</span>
+            <h3 class="product-name">YETI Rambler 30 oz Tumbler</h3>
+            <p class="product-price">$38.00</p>
+          </div>
+          <div class="card-actions">
+            <button
+              class="btn-card-add"
+              id="btn-add-yeti-tumbler"
+              onclick="handleAddToCart('prod_yeti_tumbler', 'YETI Rambler 30 oz Tumbler', 'Sports & Wearables', 38.00, '🥤')"
+            >
+              Add to Cart
+            </button>
+            <button
+              class="btn-card-favorite"
+              id="fav-btn-prod_yeti_tumbler"
+              onclick="toggleFavorite('prod_yeti_tumbler', 'YETI Rambler 30 oz Tumbler', 'Sports & Wearables')"
+              title="Add to Favorites"
+            >
+              ♡
+            </button>
+            <a href="product.html?id=prod_yeti_tumbler" class="btn-card-view" id="link-view-yeti-tumbler">Details</a>
+          </div>
+        </article>
+
+        <!-- Empty search results placeholder -->
+        <div class="catalog-empty-state" id="catalog-no-results" style="display:none;">
+          <h4>No matching products found</h4>
+          <p>Try searching for another item or click "View All" to reset your filters.</p>
+          <button class="btn-secondary" onclick="toggleViewAll(true)">Show All Products</button>
+        </div>
       </div>
     </section>
   </main>
 
-  <!-- Interactive Cart & Favorites Script -->
+  <!-- Cart Manager Script -->
+  <script src="cart.js"></script>
+
+  <!-- Interactive Favorites & Telemetry Script -->
   <script>
-    let cartCount = 0;
-
-    // Handle real Add to Cart action + telemetry dispatch
-    function handleAddToCart(productId, productName, productCategory) {
-      cartCount++;
-      document.getElementById('cart-counter').innerText = cartCount;
-
-      if (window.CausalTracker && typeof window.CausalTracker.trackAddToCart === 'function') {
-        window.CausalTracker.trackAddToCart({
-          productId,
-          productName,
-          productCategory
-        });
-      }
-    }
-
     // Handle real Favorites toggle + telemetry dispatch
     function getStoredFavorites() {
       try {
@@ -266,7 +461,30 @@
       }
     }
 
-    function toggleFavorite(productId, productName, productCategory) {
+    function syncAllFavoriteButtonsUI() {
+      const favs = getStoredFavorites();
+      const allButtons = document.querySelectorAll('.btn-card-favorite');
+      allButtons.forEach(function(btn) {
+        const card = btn.closest('.product-card');
+        const pid = card ? card.getAttribute('data-product-id') : btn.id.replace('fav-btn-', '');
+        const isFav = !!(pid && favs[pid]);
+        if (isFav) {
+          btn.classList.add('active');
+          btn.innerHTML = '❤️';
+          btn.title = 'Remove from Favorites';
+        } else {
+          btn.classList.remove('active');
+          btn.innerHTML = '♡';
+          btn.title = 'Add to Favorites';
+        }
+      });
+    }
+
+    function toggleFavorite(productId, productName, productCategory, event) {
+      const ev = event || window.event;
+      if (ev && typeof ev.stopPropagation === 'function') {
+        ev.stopPropagation();
+      }
       const favs = getStoredFavorites();
       const isCurrentlyFav = !!favs[productId];
 
@@ -297,12 +515,199 @@
       }
     }
 
-    // Initialize favorite button UI from localStorage
+    function handleCardClick(event) {
+      const e = event || window.event;
+      if (!e) return;
+      // Do not navigate if user clicked an action button, favorite heart, or link
+      if (e.target.closest('button') || e.target.closest('a') || e.target.closest('input')) {
+        return;
+      }
+      const card = e.target.closest('.product-card');
+      if (card) {
+        const pid = card.getAttribute('data-product-id');
+        if (pid) {
+          window.location.href = 'product.html?id=' + encodeURIComponent(pid);
+        }
+      }
+    }
+
+    // Initialize favorite button UI from localStorage and attach card click listener
     document.addEventListener('DOMContentLoaded', function() {
-      const favs = getStoredFavorites();
-      Object.keys(favs).forEach(function(pid) {
-        updateFavoriteButtonUI(pid, true);
+      syncAllFavoriteButtonsUI();
+
+      const grid = document.getElementById('main-product-grid');
+      if (grid) {
+        grid.addEventListener('click', handleCardClick);
+      }
+    });
+
+    // Handle BFCache (Back/Forward Cache navigation in browser)
+    window.addEventListener('pageshow', function() {
+      syncAllFavoriteButtonsUI();
+    });
+
+    // Handle tab refocus / window visibility
+    window.addEventListener('focus', syncAllFavoriteButtonsUI);
+    document.addEventListener('visibilitychange', function() {
+      if (document.visibilityState === 'visible') {
+        syncAllFavoriteButtonsUI();
+      }
+    });
+
+    // Handle cross-tab storage changes
+    window.addEventListener('storage', function(e) {
+      if (e.key === 'cf_user_favorites') {
+        syncAllFavoriteButtonsUI();
+      }
+    });
+
+    // ==========================================
+    // Interactive Catalog Filtering & View All
+    // ==========================================
+    let isCatalogExpanded = false;
+    let selectedCategory = 'all';
+    let activeSearchQuery = '';
+
+    function applyCatalogVisibility() {
+      const cards = document.querySelectorAll('#main-product-grid .product-card');
+      const emptyState = document.getElementById('catalog-no-results');
+      let visibleCount = 0;
+
+      cards.forEach(card => {
+        const cat = card.getAttribute('data-product-category') || '';
+        const name = (card.getAttribute('data-product-name') || '').toLowerCase();
+        const isExtra = card.classList.contains('extra-product');
+
+        // Check category match
+        const matchesCat = (selectedCategory === 'all' || cat.toLowerCase() === selectedCategory.toLowerCase());
+
+        // Check search query match
+        const matchesSearch = (!activeSearchQuery || name.includes(activeSearchQuery) || cat.toLowerCase().includes(activeSearchQuery));
+
+        // Check featured vs all
+        let matchesExpansion = true;
+        if (!isCatalogExpanded && selectedCategory === 'all' && !activeSearchQuery) {
+          if (isExtra) matchesExpansion = false;
+        }
+
+        if (matchesCat && matchesSearch && matchesExpansion) {
+          card.classList.remove('hidden');
+          visibleCount++;
+        } else {
+          card.classList.add('hidden');
+        }
       });
+
+      // Update button text
+      const btnText = document.getElementById('btn-filter-all-text');
+      if (btnText) {
+        if (selectedCategory !== 'all' || activeSearchQuery) {
+          btnText.innerText = 'View All (8)';
+        } else {
+          btnText.innerText = isCatalogExpanded ? 'Show Featured (4)' : 'View All (8)';
+        }
+      }
+
+      // Show/hide empty state
+      if (emptyState) {
+        emptyState.style.display = visibleCount === 0 ? 'block' : 'none';
+      }
+    }
+
+    function toggleViewAll(forceAll) {
+      if (forceAll || selectedCategory !== 'all' || activeSearchQuery) {
+        selectedCategory = 'all';
+        activeSearchQuery = '';
+        const searchInput = document.getElementById('catalog-search-input');
+        if (searchInput) searchInput.value = '';
+        isCatalogExpanded = true;
+      } else {
+        isCatalogExpanded = !isCatalogExpanded;
+      }
+
+      // Update filter pills active state
+      document.querySelectorAll('.filter-pill').forEach(pill => {
+        if (pill.getAttribute('data-category') === 'all') {
+          pill.classList.add('active');
+        } else {
+          pill.classList.remove('active');
+        }
+      });
+
+      applyCatalogVisibility();
+
+      // Scroll smoothly to products section
+      const section = document.getElementById('featured-products');
+      if (section) {
+        section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+
+      // Dispatch telemetry event for reviewer tracking
+      if (window.CausalTracker && typeof window.CausalTracker.trackCustom === 'function') {
+        window.CausalTracker.trackCustom('catalog_view_toggle', {
+          expanded: isCatalogExpanded,
+          category: selectedCategory
+        });
+      }
+    }
+
+    function selectCategory(categoryName) {
+      selectedCategory = categoryName;
+      // When a specific category is selected, expand catalog to show all items in that category
+      if (categoryName !== 'all') {
+        isCatalogExpanded = true;
+      }
+
+      // Update active pill styling
+      document.querySelectorAll('.filter-pill').forEach(pill => {
+        if (pill.getAttribute('data-category') === categoryName) {
+          pill.classList.add('active');
+        } else {
+          pill.classList.remove('active');
+        }
+      });
+
+      applyCatalogVisibility();
+
+      if (window.CausalTracker && typeof window.CausalTracker.trackCustom === 'function') {
+        window.CausalTracker.trackCustom('category_filter', { category: categoryName });
+      }
+    }
+
+    function handleSearchInput(val) {
+      activeSearchQuery = (val || '').trim().toLowerCase();
+      if (activeSearchQuery) {
+        isCatalogExpanded = true;
+      }
+      applyCatalogVisibility();
+    }
+
+    function clearCatalogSearch() {
+      const searchInput = document.getElementById('catalog-search-input');
+      if (searchInput) searchInput.value = '';
+      activeSearchQuery = '';
+      applyCatalogVisibility();
+    }
+
+    // Connect top navbar Search button and initialize filters
+    document.addEventListener('DOMContentLoaded', function() {
+      const navSearchBtn = document.getElementById('btn-search');
+      if (navSearchBtn) {
+        navSearchBtn.addEventListener('click', function() {
+          const container = document.getElementById('catalog-search-container');
+          const input = document.getElementById('catalog-search-input');
+          if (container) {
+            const isHidden = container.style.display === 'none';
+            container.style.display = isHidden ? 'block' : 'none';
+            if (isHidden) {
+              if (input) input.focus();
+              const section = document.getElementById('featured-products');
+              if (section) section.scrollIntoView({ behavior: 'smooth' });
+            }
+          }
+        });
+      }
+      applyCatalogVisibility();
     });
 
     // Telemetry HUD synchronization

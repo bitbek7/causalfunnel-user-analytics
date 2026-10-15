@@ -3,46 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Aura Pro Studio - Flagship ANC Headphones (Demo)</title>
+  <title>Amazon Store — Product Details (Demo)</title>
   <link rel="stylesheet" href="styles.css">
-  <style>
-    .product-detail-container {
-      max-width: 1100px;
-      margin: 40px auto;
-      padding: 0 20px;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 50px;
-      align-items: center;
-    }
-    .detail-img-box {
-      background: #111827;
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      height: 420px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 110px;
-    }
-    .detail-specs {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-    .spec-item {
-      display: flex;
-      justify-content: space-between;
-      border-bottom: 1px solid var(--border);
-      padding-bottom: 8px;
-      font-size: 14px;
-      color: var(--text-muted);
-    }
-    .spec-val {
-      color: #fff;
-      font-weight: 600;
-    }
-  </style>
 </head>
 <body>
 
@@ -69,14 +31,15 @@
   <!-- Navigation Bar -->
   <header class="navbar">
     <a href="index.html" class="brand">
-      <span>⚡</span> Aura Audio
+      <span>📦</span> Amazon Store
     </a>
     <ul class="nav-links">
       <li><a href="index.html" id="nav-home">Home</a></li>
-      <li><a href="product.html" class="active" id="nav-headphones">Headphones</a></li>
-      <li><a href="index.html#support" id="nav-support">Support</a></li>
     </ul>
     <div class="nav-actions">
+      <a href="http://localhost:5173/" target="_blank" rel="noopener noreferrer" class="btn-dashboard-nav" id="nav-btn-analytics" title="Open User Analytics Dashboard">
+        📊 Analytics App ↗
+      </a>
       <a href="index.html" class="btn-secondary" id="btn-back">&larr; Back to Catalog</a>
       <button class="btn-icon" id="btn-cart">🛒 Cart (<span id="cart-counter">0</span>)</button>
     </div>
@@ -84,47 +47,48 @@
 
   <main
     class="product-detail-container"
-    data-product-id="prod_aura_pro"
-    data-product-name="Aura Pro Studio"
-    data-product-category="Over-Ear ANC"
+    id="product-detail-main"
+    data-product-id="prod_echo_dot"
+    data-product-name="Echo Dot Smart Speaker"
+    data-product-category="Smart Home"
   >
     <div class="detail-img-box" id="gallery-main-image">
-      🎧
+      🎙️
     </div>
 
     <div class="detail-specs">
-      <span class="product-category">Flagship Wireless Series</span>
-      <h1 style="font-size: 34px; font-weight: 800;">Aura Pro Studio Wireless</h1>
-      <p style="color: var(--text-muted); font-size: 16px;">Custom titanium dynamic drivers with lossless spatial audio, real-time noise cancellation, and 45-hour battery reserve.</p>
+      <span class="product-category" id="detail-product-category">Smart Home</span>
+      <h1 style="font-size: 34px; font-weight: 800;" id="detail-product-name">Echo Dot Smart Speaker</h1>
+      <p style="color: var(--text-muted); font-size: 16px;" id="detail-product-desc">Compact smart speaker featuring Alexa, crisp sound, and smart home voice automation.</p>
 
-      <div style="font-size: 28px; font-weight: 800; color: #fff; margin: 10px 0;">$349.00</div>
+      <div style="font-size: 28px; font-weight: 800; color: var(--text-primary); margin: 10px 0;" id="detail-product-price">$49.99</div>
 
-      <div class="spec-item">
-        <span>Acoustic Driver</span>
-        <span class="spec-val">40mm Custom Bio-Cellulose</span>
-      </div>
-      <div class="spec-item">
-        <span>Active Noise Cancellation</span>
-        <span class="spec-val">Adaptive Hybrid ANC (45dB)</span>
-      </div>
-      <div class="spec-item">
-        <span>Battery Life</span>
-        <span class="spec-val">45 Hours (Fast Charge: 15m = 6h)</span>
+      <div id="detail-specs-container" class="detail-specs-list">
+        <div class="spec-item">
+          <span>Voice Assistant</span>
+          <span class="spec-val">Amazon Alexa Built-in</span>
+        </div>
+        <div class="spec-item">
+          <span>Audio Driver</span>
+          <span class="spec-val">1.73" Front-Firing High Fidelity</span>
+        </div>
+        <div class="spec-item">
+          <span>Connectivity</span>
+          <span class="spec-val">Dual-Band Wi-Fi & Bluetooth LE</span>
+        </div>
       </div>
 
       <div style="display: flex; gap: 14px; margin-top: 20px;">
         <button
           class="btn-primary"
           id="btn-add-cart-detail"
-          onclick="handleAddToCart('prod_aura_pro', 'Aura Pro Studio', 'Over-Ear ANC')"
           style="flex: 2; justify-content: center;"
         >
-          Add to Cart - $349.00
+          Add to Cart - $49.99
         </button>
         <button
           class="btn-secondary"
           id="btn-wishlist"
-          onclick="toggleFavorite('prod_aura_pro', 'Aura Pro Studio', 'Over-Ear ANC')"
           style="flex: 1;"
         >
           ♡ Wishlist
@@ -133,20 +97,129 @@
     </div>
   </main>
 
-  <script>
-    let cartCount = 0;
-    function handleAddToCart(productId, productName, productCategory) {
-      cartCount++;
-      document.getElementById('cart-counter').innerText = cartCount;
+  <!-- Cart Manager Script -->
+  <script src="cart.js"></script>
 
-      if (window.CausalTracker && typeof window.CausalTracker.trackAddToCart === 'function') {
-        window.CausalTracker.trackAddToCart({
-          productId,
-          productName,
-          productCategory
-        });
+  <script>
+    const PRODUCT_CATALOG = {
+      'prod_echo_dot': {
+        id: 'prod_echo_dot',
+        name: 'Echo Dot Smart Speaker',
+        category: 'Smart Home',
+        price: 49.99,
+        emoji: '🎙️',
+        desc: 'Compact smart speaker featuring Alexa, crisp spatial audio, temperature sensor, and smart home voice automation.',
+        specs: [
+          { label: 'Voice Assistant', val: 'Amazon Alexa Built-in' },
+          { label: 'Audio Driver', val: '1.73" Front-Firing High Fidelity' },
+          { label: 'Connectivity', val: 'Dual-Band Wi-Fi & Bluetooth LE' }
+        ]
+      },
+      'prod_kindle_paperwhite': {
+        id: 'prod_kindle_paperwhite',
+        name: 'Kindle Paperwhite (16 GB)',
+        category: 'E-Readers & Books',
+        price: 139.99,
+        emoji: '📖',
+        desc: '6.8" glare-free display with adjustable warm light, IPX8 waterproof rating, and up to 10 weeks of battery life.',
+        specs: [
+          { label: 'Display Size', val: '6.8" 300 ppi Glare-Free Paperwhite' },
+          { label: 'Storage', val: '16 GB High-Speed Flash' },
+          { label: 'Battery Life', val: 'Up to 10 Weeks (USB-C Fast Charge)' }
+        ]
+      },
+      'prod_instant_pot': {
+        id: 'prod_instant_pot',
+        name: 'Instant Pot Pro 10-in-1',
+        category: 'Home & Kitchen',
+        price: 129.95,
+        emoji: '🍳',
+        desc: 'Multi-functional electric pressure cooker, slow cooker, rice cooker, steamer, sauté pan, and sous vide.',
+        specs: [
+          { label: 'Cooking Modes', val: '10-in-1 Smart One-Touch Programs' },
+          { label: 'Capacity', val: '6-Quart (Serves up to 6)' },
+          { label: 'Inner Pot', val: 'Premium 304 Stainless Steel Body' }
+        ]
+      },
+      'prod_fitbit_charge': {
+        id: 'prod_fitbit_charge',
+        name: 'Fitbit Charge 6 Tracker',
+        category: 'Sports & Wearables',
+        price: 159.95,
+        emoji: '⌚',
+        desc: 'Advanced fitness and health tracker with built-in GPS, 24/7 heart rate monitor, stress management, and 40+ exercise modes.',
+        specs: [
+          { label: 'Sensors', val: 'Built-in GPS, EDA & SpO2 Blood Oxygen' },
+          { label: 'Battery Life', val: 'Up to 7 Days on a Single Charge' },
+          { label: 'Water Rating', val: 'Water Resistant to 50 Meters' }
+        ]
+      },
+      'prod_ring_doorbell': {
+        id: 'prod_ring_doorbell',
+        name: 'Ring Video Doorbell',
+        category: 'Smart Home',
+        price: 99.99,
+        emoji: '🔔',
+        desc: '1080p HD video doorbell with enhanced motion detection, two-way audio, and real-time mobile notifications.',
+        specs: [
+          { label: 'Video Quality', val: '1080p Full HD with Night Vision' },
+          { label: 'Field of View', val: '155° Horizontal, 90° Vertical' },
+          { label: 'Power Source', val: 'Built-in Rechargeable Battery' }
+        ]
+      },
+      'prod_fire_tv_stick': {
+        id: 'prod_fire_tv_stick',
+        name: 'Fire TV Stick 4K Max',
+        category: 'Smart Home',
+        price: 59.99,
+        emoji: '📺',
+        desc: 'Streaming device with Wi-Fi 6 support, Dolby Vision, HDR10+, and Alexa Voice Remote.',
+        specs: [
+          { label: 'Resolution', val: '4K Ultra HD up to 60fps' },
+          { label: 'Connectivity', val: 'Wi-Fi 6 (802.11ax) Dual-Band' },
+          { label: 'Audio', val: 'Dolby Atmos Audio Passthrough' }
+        ]
+      },
+      'prod_ninja_airfryer': {
+        id: 'prod_ninja_airfryer',
+        name: 'Ninja DualZone Air Fryer',
+        category: 'Home & Kitchen',
+        price: 179.99,
+        emoji: '🍟',
+        desc: '2-basket independent air fryer with DualZone technology, Smart Finish, and Match Cook functions.',
+        specs: [
+          { label: 'Capacity', val: '8-Quart (2 Independent 4-Qt Baskets)' },
+          { label: 'Functions', val: 'Air Fry, Broil, Roast, Bake, Reheat, Dehydrate' },
+          { label: 'Temperature', val: 'Up to 450°F Rapid Airflow' }
+        ]
+      },
+      'prod_yeti_tumbler': {
+        id: 'prod_yeti_tumbler',
+        name: 'YETI Rambler 30 oz Tumbler',
+        category: 'Sports & Wearables',
+        price: 38.00,
+        emoji: '🥤',
+        desc: 'Stainless steel vacuum-insulated tumbler with MagSlider lid keeps beverages ice-cold or piping hot all day.',
+        specs: [
+          { label: 'Insulation', val: 'Double-Wall Vacuum Insulation' },
+          { label: 'Material', val: '18/8 Kitchen-Grade Stainless Steel' },
+          { label: 'Dishwasher Safe', val: 'Yes, 100% Dishwasher Safe' }
+        ]
+      },
+      'prod_aura_pro': {
+        id: 'prod_aura_pro',
+        name: 'Aura Pro Studio',
+        category: 'Studio Headphones',
+        price: 349.00,
+        emoji: '🎧',
+        desc: 'Custom titanium dynamic drivers with lossless spatial audio, real-time noise cancellation, and 45-hour battery reserve.',
+        specs: [
+          { label: 'Acoustic Driver', val: '40mm Custom Bio-Cellulose' },
+          { label: 'Noise Cancellation', val: 'Adaptive Hybrid ANC (45dB)' },
+          { label: 'Battery Life', val: '45 Hours (Fast Charge: 15m = 6h)' }
+        ]
       }
-    }
+    };
 
     function getStoredFavorites() {
       try {
@@ -176,8 +249,8 @@
         favs[productId] = { productName, productCategory };
         localStorage.setItem('cf_user_favorites', JSON.stringify(favs));
         btn.innerText = '❤️ In Wishlist';
-        btn.style.color = '#f43f5e';
-        btn.style.borderColor = '#f43f5e';
+        btn.style.color = '#ef4444';
+        btn.style.borderColor = '#ef4444';
 
         if (window.CausalTracker && typeof window.CausalTracker.trackFavorite === 'function') {
           window.CausalTracker.trackFavorite({ productId, productName, productCategory });
@@ -186,35 +259,106 @@
     }
 
     document.addEventListener('DOMContentLoaded', function() {
-      const favs = getStoredFavorites();
-      if (favs['prod_aura_pro']) {
-        const btn = document.getElementById('btn-wishlist');
-        btn.innerText = '❤️ In Wishlist';
-        btn.style.color = '#f43f5e';
-        btn.style.borderColor = '#f43f5e';
+      // Resolve product from URL query param ?id=...
+      const urlParams = new URLSearchParams(window.location.search);
+      const requestedId = urlParams.get('id') || 'prod_echo_dot';
+      const prod = PRODUCT_CATALOG[requestedId] || PRODUCT_CATALOG['prod_echo_dot'];
+
+      // Populate DOM elements
+      document.title = `${prod.name} — Amazon Store (Demo)`;
+      const main = document.getElementById('product-detail-main');
+      if (main) {
+        main.setAttribute('data-product-id', prod.id);
+        main.setAttribute('data-product-name', prod.name);
+        main.setAttribute('data-product-category', prod.category);
       }
 
-      // Automatically track product view event
-      if (window.CausalTracker && typeof window.CausalTracker.trackProductView === 'function') {
-        window.CausalTracker.trackProductView({
-          productId: 'prod_aura_pro',
-          productName: 'Aura Pro Studio',
-          productCategory: 'Studio Headphones'
-        });
-      } else {
-        setTimeout(function() {
-          if (window.CausalTracker && typeof window.CausalTracker.trackProductView === 'function') {
-            window.CausalTracker.trackProductView({
-              productId: 'prod_aura_pro',
-              productName: 'Aura Pro Studio',
-              productCategory: 'Studio Headphones'
-            });
+      const imgEl = document.getElementById('gallery-main-image');
+      if (imgEl) imgEl.innerText = prod.emoji;
+
+      const catEl = document.getElementById('detail-product-category');
+      if (catEl) catEl.innerText = prod.category;
+
+      const nameEl = document.getElementById('detail-product-name');
+      if (nameEl) nameEl.innerText = prod.name;
+
+      const descEl = document.getElementById('detail-product-desc');
+      if (descEl) descEl.innerText = prod.desc;
+
+      const priceEl = document.getElementById('detail-product-price');
+      if (priceEl) priceEl.innerText = `$${Number(prod.price).toFixed(2)}`;
+
+      const specsContainer = document.getElementById('detail-specs-container');
+      if (specsContainer && prod.specs) {
+        specsContainer.innerHTML = prod.specs.map(s => `
+          <div class="spec-item">
+            <span>${s.label}</span>
+            <span class="spec-val">${s.val}</span>
+          </div>
+        `).join('');
+      }
+
+      // Add to Cart Button wiring
+      const addBtn = document.getElementById('btn-add-cart-detail');
+      if (addBtn) {
+        addBtn.innerText = `Add to Cart - $${Number(prod.price).toFixed(2)}`;
+        addBtn.onclick = function() {
+          if (typeof window.handleAddToCart === 'function') {
+            window.handleAddToCart(prod.id, prod.name, prod.category, prod.price, prod.emoji);
           }
-        }, 300);
+        };
+      }
+
+      // Wishlist Button wiring
+      const wishBtn = document.getElementById('btn-wishlist');
+      if (wishBtn) {
+        function syncWishlistUI() {
+          const favs = getStoredFavorites();
+          if (favs[prod.id]) {
+            wishBtn.innerText = '❤️ In Wishlist';
+            wishBtn.style.color = '#ef4444';
+            wishBtn.style.borderColor = '#ef4444';
+          } else {
+            wishBtn.innerText = '♡ Wishlist';
+            wishBtn.style.color = '';
+            wishBtn.style.borderColor = '';
+          }
+        }
+
+        wishBtn.onclick = function() {
+          toggleFavorite(prod.id, prod.name, prod.category);
+          syncWishlistUI();
+        };
+
+        syncWishlistUI();
+        window.addEventListener('pageshow', syncWishlistUI);
+        window.addEventListener('focus', syncWishlistUI);
+        window.addEventListener('storage', function(e) {
+          if (e.key === 'cf_user_favorites') syncWishlistUI();
+        });
+      }
+
+      // Automatically track product view event for the resolved product (exactly once)
+      let hasTrackedView = false;
+      function sendProductView() {
+        if (hasTrackedView) return;
+        if (window.CausalTracker && typeof window.CausalTracker.trackProductView === 'function') {
+          hasTrackedView = true;
+          window.CausalTracker.trackProductView({
+            productId: prod.id,
+            productName: prod.name,
+            productCategory: prod.category
+          });
+        }
+      }
+
+      sendProductView();
+      if (!hasTrackedView) {
+        setTimeout(sendProductView, 350);
       }
     });
 
-
+    // Telemetry HUD synchronization
     let eventTally = 0;
     window.addEventListener('cf_event_tracked', function(e) {
       eventTally++;
